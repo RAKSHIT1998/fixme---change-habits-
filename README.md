@@ -12,7 +12,8 @@ open FixMe.xcodeproj
 
 Pick any iPhone simulator and hit **Run**. No Apple Developer account needed for the
 Simulator, and the app is fully usable with no backend or API keys — AI verification runs
-through `MockAIProvider`, and StoreKit purchases run against `Products.storekit`.
+on-device through `VisionAIProvider`, and StoreKit purchases run against
+`Products.storekit`.
 
 > Set your Development Team in **`Signing.xcconfig`**, not in Xcode's Signing &
 > Capabilities tab. Anything Xcode writes into the project file is lost the next time
@@ -173,6 +174,35 @@ rejected — there are tests for each.
 
 The contact picker runs out of process, so the app needs **no Contacts permission** and
 never sees the address book — it only pre-fills an invite message.
+
+## Progress Reel
+
+**Journey › the film icon** builds a vertical video out of the user's own daily photos and
+real numbers — hook frame, photo days in order, stats cut in on a rhythm, and a closing
+card with their referral code — then hands it to Save to Photos or the share sheet, ready
+to post to TikTok, Reels or a story.
+
+It is the app's one outbound growth loop that can actually travel. A static share card gets
+a like; a transformation video gets reposted, and the daily photos this app has been
+collecting all along were until now write-only.
+
+Everything is generated on device. Scenes are rasterized from SwiftUI with `ImageRenderer`,
+then `ReelVideoWriter` encodes them to H.264 with a slow push-in and crossfades. No upload,
+no server, no account — the same constraint every other feature here works under.
+
+Three rules it's built around:
+
+1. **Never paywalled.** Gating the feature whose entire job is to bring new people in would
+   be taxing the cheapest acquisition channel the app has. Same reasoning as the share-card
+   watermark, which every reel also carries.
+2. **It works with no photos.** Most people won't have taken daily photos, and a loop that
+   only fires for the diligent minority isn't a loop — a stats-only reel is still a reel.
+3. **Critical content stays out of the platform's chrome.** TikTok and Reels paint captions
+   and buttons over the bottom fifth of the frame. The invite code sits above that line, or
+   it ships covered up.
+
+Length is capped in the storyboard (photos are sampled, never all 90) because the invite
+lives on the last frame, and nobody reaches the last frame of a two-minute video.
 
 ## Social
 

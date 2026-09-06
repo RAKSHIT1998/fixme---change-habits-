@@ -61,6 +61,15 @@ Retention *is* the revenue model: LTV is roughly ARPU × months retained.
   removal would tax the app's cheapest acquisition channel — never do it.
 - **Referrals** (`ReferralView`) — symmetric offer, a free week each. Accountability partners
   genuinely finish challenges more often, so this is a feature, not just a growth hack.
+- **Progress Reel** (`ProgressReelView`) — the users' own photos and numbers as a postable
+  vertical video, ending on a frame carrying their referral code. Static cards get likes;
+  transformation videos get reposted, which is the difference between a share and a loop.
+  Free for everyone, deliberately: this is the top of the funnel, not something to sell.
+
+  Watch `reel_started` → `reel_rendered` → `reel_exported`. A rendered reel nobody posts is
+  a rendering cost, not a growth loop, and the render/export ratio is the only thing that
+  tells the two apart. If exports are healthy but installs aren't moving, the end card is
+  the thing to A/B — it is the only frame that asks for anything.
 
 ## Funnel instrumentation
 

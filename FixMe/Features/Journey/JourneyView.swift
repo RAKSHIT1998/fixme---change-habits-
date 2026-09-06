@@ -6,6 +6,7 @@ struct JourneyView: View {
     private var activeJourneys: [Journey]
 
     @State private var selectedDay: Int?
+    @State private var showReel = false
 
     private var journey: Journey? { activeJourneys.first }
 
@@ -28,6 +29,20 @@ struct JourneyView: View {
             }
             .background(FMTheme.Colors.background)
             .navigationTitle("Journey")
+            .toolbar {
+                if journey != nil {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button { showReel = true } label: {
+                            Label("Make a reel", systemImage: "film.stack")
+                        }
+                    }
+                }
+            }
+            .sheet(isPresented: $showReel) {
+                if let journey {
+                    ProgressReelView(journey: journey, user: journey.owner)
+                }
+            }
             .sheet(item: Binding(
                 get: { selectedDay.map { DayIdentifier(day: $0) } },
                 set: { selectedDay = $0?.day }
