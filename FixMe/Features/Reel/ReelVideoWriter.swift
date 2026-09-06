@@ -85,52 +85,46 @@ enum ReelVideoWriter {
         let timeline = Timeline(stills: stills)
         let totalFrames = max(Int((timeline.totalDuration * Double(framesPerSecond)).rounded()), 1)
         let queue = DispatchQueue(label: "com.fixme.reel.writer")
-        let state = WriterState()
+        let session = WriterSession(writer: writer, input: input, adaptor: adaptor)
 
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
-            input.requestMediaDataWhenReady(on: queue) {
-                while input.isReadyForMoreMediaData {
-                    guard !state.isFinished else { return }
+            session.input.requestMediaDataWhenReady(on: queue) {
+                while session.input.isReadyForMoreMediaData {
+                    guard !session.isFinished else { return }
 
-                    let frame = state.frameIndex
+                    let frame = session.frameIndex
                     if frame >= totalFrames {
-                        state.isFinished = true
-                        input.markAsFinished()
-                        writer.finishWriting {
-                            if writer.status == .completed {
+                        session.finish()
+                        session.writer.finishWriting {
+                            if session.writer.status == .completed {
                                 continuation.resume()
                             } else {
                                 continuation.resume(throwing: ReelVideoError.writeFailed(
-                                    writer.error?.localizedDescription ?? "Encoding failed."
+                                    session.writer.error?.localizedDescription ?? "Encoding failed."
                                 ))
                             }
                         }
                         return
                     }
 
-                    guard let pool = adaptor.pixelBufferPool,
+                    guard let pool = session.adaptor.pixelBufferPool,
                           let buffer = makePixelBuffer(pool: pool, timeline: timeline, frame: frame, size: size)
                     else {
-                        state.isFinished = true
-                        input.markAsFinished()
-                        writer.cancelWriting()
+                        session.abort()
                         continuation.resume(throwing: ReelVideoError.frameFailed)
                         return
                     }
 
                     let time = CMTime(value: Int64(frame), timescale: framesPerSecond)
-                    guard adaptor.append(buffer, withPresentationTime: time) else {
-                        state.isFinished = true
-                        input.markAsFinished()
-                        writer.cancelWriting()
-                        continuation.resume(throwing: ReelVideoError.writeFailed(
-                            writer.error?.localizedDescription ?? "Dropped a frame."
-                        ))
+                    guard session.adaptor.append(buffer, withPresentationTime: time) else {
+                        let reason = session.writer.error?.localizedDescription ?? "Dropped a frame."
+                        session.abort()
+                        continuation.resume(throwing: ReelVideoError.writeFailed(reason))
                         return
                     }
 
-                    state.frameIndex += 1
-                    onProgress(Double(state.frameIndex) / Double(totalFrames))
+                    session.frameIndex += 1
+                    onProgress(Double(session.frameIndex) / Double(totalFrames))
                 }
             }
         }
@@ -245,10 +239,41 @@ enum ReelVideoWriter {
         }
     }
 
-    /// Mutable cursor for the writer callback. Only ever touched on the writer's serial
-    /// queue, which is what makes the unchecked conformance safe.
-    private final class WriterState: @unchecked Sendable {
+    /// The encoder objects plus the frame cursor, in one box.
+    ///
+    /// None of AVAssetWriter, its input or the pixel-buffer adaptor is `Sendable`, and
+    /// `requestMediaDataWhenReady` hands back a `@Sendable` closure — so capturing them
+    /// directly is a concurrency warning, and the honest fix is to state the invariant
+    /// rather than silence the compiler with `@preconcurrency`.
+    ///
+    /// The invariant: every access happens inside that one callback, which AVFoundation
+    /// serializes onto the single queue it was given. Nothing here is touched from
+    /// anywhere else, which is what makes the unchecked conformance true rather than
+    /// merely convenient.
+    private final class WriterSession: @unchecked Sendable {
+        let writer: AVAssetWriter
+        let input: AVAssetWriterInput
+        let adaptor: AVAssetWriterInputPixelBufferAdaptor
         var frameIndex = 0
-        var isFinished = false
+        private(set) var isFinished = false
+
+        init(writer: AVAssetWriter, input: AVAssetWriterInput, adaptor: AVAssetWriterInputPixelBufferAdaptor) {
+            self.writer = writer
+            self.input = input
+            self.adaptor = adaptor
+        }
+
+        /// All frames written — let the writer flush what it has.
+        func finish() {
+            isFinished = true
+            input.markAsFinished()
+        }
+
+        /// Something failed mid-encode. Marking finished first stops AVFoundation calling
+        /// back into a cancelled writer.
+        func abort() {
+            finish()
+            writer.cancelWriting()
+        }
     }
 }

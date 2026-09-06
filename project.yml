@@ -56,6 +56,11 @@ targets:
           - UIInterfaceOrientationPortrait
     settings:
       base:
+        # Set per-target, not just in the project-level settings above: XcodeGen writes its
+        # own "1,2" default onto each target, which silently wins. Declaring iPad support
+        # is what makes Xcode demand all four interface orientations from a portrait-only
+        # app — this app is iPhone-only, and the App Store listing says so too.
+        TARGETED_DEVICE_FAMILY: "1"
         CODE_SIGN_ENTITLEMENTS: FixMe/Resources/FixMe.entitlements
         PRODUCT_BUNDLE_IDENTIFIER: $(FIXME_BUNDLE_ID)
         PRODUCT_NAME: "Fix Me"
@@ -82,6 +87,7 @@ targets:
           NSExtensionPointIdentifier: com.apple.widgetkit-extension
     settings:
       base:
+        TARGETED_DEVICE_FAMILY: "1"
         CODE_SIGN_ENTITLEMENTS: FixMeWidgets/FixMeWidgets.entitlements
         PRODUCT_BUNDLE_IDENTIFIER: $(FIXME_BUNDLE_ID).widgets
         PRODUCT_NAME: "FixMeWidgets"

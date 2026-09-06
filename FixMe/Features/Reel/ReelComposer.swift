@@ -22,7 +22,7 @@ enum ReelComposer {
     static func make(
         from input: ReelInput,
         size: CGSize = ReelVideoWriter.renderSize,
-        onProgress: @escaping @MainActor (Double) -> Void = { _ in }
+        onProgress: @escaping @MainActor @Sendable (Double) -> Void = { _ in }
     ) async throws -> ProgressReel {
         let scenes = ReelStoryboard.scenes(for: input)
         guard !scenes.isEmpty else { throw ReelVideoError.nothingToRender }
