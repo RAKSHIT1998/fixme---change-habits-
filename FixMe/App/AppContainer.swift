@@ -30,7 +30,16 @@ final class ServiceContainer {
     init() {
         let subscriptions = SubscriptionService()
         self.subscriptions = subscriptions
-        self.premium = PremiumGate(subscriptions: subscriptions)
+        let premium = PremiumGate(subscriptions: subscriptions)
+        self.premium = premium
+
+        // Pairing is what earns the free week the referral screen promises, and every
+        // pairing path — Nearby and invite link alike — funnels through FriendStore.
+        makeFriendStore = { context in
+            FriendStore(modelContext: context) { peerID in
+                premium.grantReferralWeek(forPeerID: peerID)
+            }
+        }
     }
 }
 

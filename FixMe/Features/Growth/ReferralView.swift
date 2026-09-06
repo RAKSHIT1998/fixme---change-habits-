@@ -25,7 +25,7 @@ struct ReferralView: View {
 
         \(inviteLink.absoluteString)
 
-        My code is \(code) — we both get a free week of Premium.
+        Add me back in the app and we each get a free week of Premium.
         """
     }
 
@@ -39,7 +39,7 @@ struct ReferralView: View {
                         Text("Do it with someone.")
                             .font(FMTheme.Typography.display(30))
                             .multilineTextAlignment(.center)
-                        Text("Invite a friend to your 90 days. You both get a free week of Premium when they start.")
+                        Text("Invite a friend to your 90 days. You each get a free week of Premium once you're paired.")
                             .font(FMTheme.Typography.body)
                             .foregroundStyle(FMTheme.Colors.textSecondary)
                             .multilineTextAlignment(.center)
@@ -58,11 +58,26 @@ struct ReferralView: View {
                     .background(FMTheme.Colors.surface)
                     .clipShape(RoundedRectangle(cornerRadius: FMTheme.Radius.lg, style: .continuous))
 
-                    if let user, user.referralsConverted > 0 {
-                        Text("\(user.referralsConverted) friend\(user.referralsConverted == 1 ? "" : "s") joined. Nice.")
-                            .font(FMTheme.Typography.subheadline)
-                            .foregroundStyle(FMTheme.Colors.success)
+                    // Driven by ReferralCredit rather than User.referralsConverted, which
+                    // nothing ever incremented — this counts weeks actually granted.
+                    if services.premium.friendsCredited > 0 {
+                        let friends = services.premium.friendsCredited
+                        VStack(spacing: 2) {
+                            Text("\(friends) friend\(friends == 1 ? "" : "s") paired. Nice.")
+                                .font(FMTheme.Typography.subheadline)
+                                .foregroundStyle(FMTheme.Colors.success)
+                            if services.premium.referralDaysRemaining > 0 {
+                                Text("\(services.premium.referralDaysRemaining) days of Premium earned and running.")
+                                    .font(FMTheme.Typography.footnote)
+                                    .foregroundStyle(FMTheme.Colors.textSecondary)
+                            }
+                        }
                     }
+
+                    Text("Pairing happens phone-to-phone, so the week lands when you're actually connected — not when a code is typed.")
+                        .font(FMTheme.Typography.footnote)
+                        .foregroundStyle(FMTheme.Colors.textTertiary)
+                        .multilineTextAlignment(.center)
 
                     FMPrimaryButton(title: "Invite a friend", icon: "square.and.arrow.up") {
                         services.analytics.track(.referralShared)

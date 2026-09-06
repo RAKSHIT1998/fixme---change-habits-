@@ -11,6 +11,11 @@ import SwiftData
 struct FriendStore {
     let modelContext: ModelContext
 
+    /// Called once with the peer ID when a pairing is genuinely new — not on a re-pair or
+    /// a name refresh. This is the single choke point where "a new friend was added"
+    /// is actually known, which is exactly what the referral reward depends on.
+    var onNewPairing: (@MainActor (String) -> Void)?
+
     // MARK: - Friends
 
     func allFriends() -> [Friend] {
@@ -46,6 +51,7 @@ struct FriendStore {
         )
         modelContext.insert(friend)
         try modelContext.save()
+        onNewPairing?(card.peerID)
         return friend
     }
 

@@ -17,6 +17,8 @@ final class User {
 
     /// Stable code used for the invite loop.
     var referralCode: String = String(UUID().uuidString.prefix(6)).uppercased()
+    /// Superseded by `ReferralCredit.friendsCredited`, which is what actually grants the
+    /// free week. Nothing increments this; kept only to avoid a store migration.
     var referralsConverted: Int = 0
 
     @Relationship(deleteRule: .cascade, inverse: \Journey.owner)

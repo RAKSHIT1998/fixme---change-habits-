@@ -71,6 +71,13 @@ struct SettingsView: View {
                 Section("Subscription") {
                     LabeledContent("Plan", value: services.premium.isPremium ? "Premium" : "Free")
 
+                    if services.premium.isOnReferralCreditOnly {
+                        let days = services.premium.referralDaysRemaining
+                        Text("\(days) day\(days == 1 ? "" : "s") of Premium left, earned from friends. Pair with another to add a week.")
+                            .font(FMTheme.Typography.footnote)
+                            .foregroundStyle(FMTheme.Colors.textSecondary)
+                    }
+
                     if !services.premium.isPremium {
                         Button("Upgrade to Premium") { showPaywall = true }
                             .fontWeight(.semibold)
@@ -169,6 +176,9 @@ struct SettingsView: View {
     private func deleteAllData() {
         for user in users { modelContext.delete(user) }
         try? modelContext.save()
+        // Earned referral premium lives in UserDefaults, so deleting the models alone
+        // would leave it behind — "delete my data" has to mean all of it.
+        services.premium.resetReferralCredit()
         dismiss()
     }
 }

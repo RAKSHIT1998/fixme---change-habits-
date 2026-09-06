@@ -19,12 +19,47 @@ final class PremiumGate {
     nonisolated static let freeShareTemplates: Set<ShareTemplate> = [.minimal, .dark, .light]
 
     private let subscriptions: SubscriptionService
+    private let credit: ReferralCredit
 
-    init(subscriptions: SubscriptionService) {
+    /// Mirrors `ReferralCredit`'s stored expiry so granting a week actually redraws the
+    /// UI — the underlying value lives in UserDefaults, which Observation can't see.
+    private(set) var referralPremiumUntil: Date?
+
+    init(subscriptions: SubscriptionService, credit: ReferralCredit = ReferralCredit()) {
         self.subscriptions = subscriptions
+        self.credit = credit
+        self.referralPremiumUntil = credit.premiumUntil
     }
 
-    var isPremium: Bool { subscriptions.isSubscribed }
+    /// A paid subscription, or an unexpired week earned by pairing with a friend.
+    var isPremium: Bool { subscriptions.isSubscribed || hasReferralPremium }
+
+    var hasReferralPremium: Bool {
+        guard let referralPremiumUntil else { return false }
+        return referralPremiumUntil > .now
+    }
+
+    /// True only when premium is *entirely* down to referral credit, which is what the
+    /// subscription screen needs to know to avoid telling a paying subscriber their plan
+    /// expires next Tuesday.
+    var isOnReferralCreditOnly: Bool { hasReferralPremium && !subscriptions.isSubscribed }
+
+    var referralDaysRemaining: Int { credit.daysRemaining() }
+    var friendsCredited: Int { credit.friendsCredited }
+
+    /// Called when a pairing completes. Returns whether a week was actually granted, so
+    /// the UI can stay quiet for a friend who was already credited or a capped account.
+    @discardableResult
+    func grantReferralWeek(forPeerID peerID: String) -> Bool {
+        let granted = credit.grant(forPeerID: peerID)
+        if granted { referralPremiumUntil = credit.premiumUntil }
+        return granted
+    }
+
+    func resetReferralCredit() {
+        credit.reset()
+        referralPremiumUntil = nil
+    }
 
     // MARK: - Habits
 
