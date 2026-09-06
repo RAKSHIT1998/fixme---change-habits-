@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>$(DEVELOPMENT_LANGUAGE)</string>
+	<key>CFBundleExecutable</key>
+	<string>$(EXECUTABLE_NAME)</string>
+	<key>CFBundleIdentifier</key>
+	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>CFBundleName</key>
+	<string>$(PRODUCT_NAME)</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>1.0</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>com.rakshitbargotra.fixme.peer</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>fixme</string>
+			</array>
+		</dict>
+	</array>
+	<key>CFBundleVersion</key>
+	<string>1</string>
+	<key>FMAppGroupIdentifier</key>
+	<string>$(FIXME_APP_GROUP)</string>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
+	<key>NSBonjourServices</key>
+	<array>
+		<string>_fixme-progress._tcp</string>
+		<string>_fixme-progress._udp</string>
+	</array>
+	<key>NSCameraUsageDescription</key>
+	<string>Fix Me uses the camera so you can prove you showed up for a habit — like a quick wake-up photo.</string>
+	<key>NSHealthShareUsageDescription</key>
+	<string>Fix Me reads your steps, workouts and sleep from Health so we can automatically verify habits like 10K steps without you lifting a finger.</string>
+	<key>NSHealthUpdateUsageDescription</key>
+	<string>Fix Me can log workouts you complete inside the app back to Health.</string>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>Fix Me connects directly to a friend's phone over Wi-Fi or Bluetooth to swap progress updates. Nothing goes to a server — the two devices talk to each other.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Fix Me saves share cards and daily photos you choose to keep to your Photos library.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Fix Me can attach a photo from your library as evidence for a habit, and save your daily photo to your library.</string>
+	<key>NSUserNotificationsUsageDescription</key>
+	<string>Fix Me sends gentle reminders to help you keep your streak alive.</string>
+	<key>UIApplicationSceneManifest</key>
+	<dict>
+		<key>UIApplicationSupportsMultipleScenes</key>
+		<false/>
+	</dict>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>audio</string>
+	</array>
+	<key>UILaunchScreen</key>
+	<dict/>
+	<key>UISupportedInterfaceOrientations</key>
+	<array>
+		<string>UIInterfaceOrientationPortrait</string>
+	</array>
+</dict>
+</plist>

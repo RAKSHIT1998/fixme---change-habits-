@@ -1,0 +1,19 @@
+// Signing and identity — the only file you need to edit to build Fix Me on a device.
+//
+// This is deliberately kept out of the generated .xcodeproj so regenerating with
+// XcodeGen never clobbers your team settings.
+
+// A bundle id you own. "com.fixme.app" is already registered to another developer,
+// so it cannot be used. Reverse-DNS on a domain or Apple ID you control is safest.
+FIXME_BUNDLE_ID = com.rakshitbargotra.fixme
+
+// Must match the App Group in FixMe/Resources/FixMe.entitlements.
+// Ignored entirely when building with the "personal" capability profile.
+FIXME_APP_GROUP = group.$(FIXME_BUNDLE_ID)
+
+// Your 10-character Apple Developer Team ID (Xcode > Settings > Accounts).
+// Leave EMPTY for Simulator builds — an empty team is what keeps Xcode from trying
+// to register the App ID, which is what produced the "cannot be registered" error.
+DEVELOPMENT_TEAM = 48TGY734WW
+
+CODE_SIGN_STYLE = Automatic

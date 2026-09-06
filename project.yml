@@ -1,0 +1,119 @@
+name: FixMe
+options:
+  bundleIdPrefix: com.rakshitbargotra.fixme
+  deploymentTarget:
+    iOS: "17.0"
+  createIntermediateGroups: true
+  developmentLanguage: en
+
+configFiles:
+  Debug: Signing.xcconfig
+  Release: Signing.xcconfig
+
+settings:
+  base:
+    SWIFT_VERSION: "5.10"
+    IPHONEOS_DEPLOYMENT_TARGET: "17.0"
+    TARGETED_DEVICE_FAMILY: "1"
+    ENABLE_PREVIEWS: YES
+    ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+    ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+
+targets:
+  FixMe:
+    type: application
+    platform: iOS
+    sources:
+      - path: FixMe
+    resources:
+      - path: FixMe/Resources/Assets.xcassets
+      - path: FixMe/Resources/Sounds
+    info:
+      path: FixMe/Resources/Info.plist
+      properties:
+        UILaunchScreen: {}
+        UIApplicationSceneManifest:
+          UIApplicationSupportsMultipleScenes: false
+        NSHealthShareUsageDescription: "Fix Me reads your steps, workouts and sleep from Health so we can automatically verify habits like 10K steps without you lifting a finger."
+        NSHealthUpdateUsageDescription: "Fix Me can log workouts you complete inside the app back to Health."
+        NSCameraUsageDescription: "Fix Me uses the camera so you can prove you showed up for a habit — like a quick wake-up photo."
+        NSPhotoLibraryUsageDescription: "Fix Me can attach a photo from your library as evidence for a habit, and save your daily photo to your library."
+        NSPhotoLibraryAddUsageDescription: "Fix Me saves share cards and daily photos you choose to keep to your Photos library."
+        NSUserNotificationsUsageDescription: "Fix Me sends gentle reminders to help you keep your streak alive."
+        ITSAppUsesNonExemptEncryption: false
+        UIBackgroundModes:
+          - audio
+        NSLocalNetworkUsageDescription: "Fix Me connects directly to a friend's phone over Wi-Fi or Bluetooth to swap progress updates. Nothing goes to a server — the two devices talk to each other."
+        NSBonjourServices:
+          - _fixme-progress._tcp
+          - _fixme-progress._udp
+        CFBundleURLTypes:
+          - CFBundleURLName: com.rakshitbargotra.fixme.peer
+            CFBundleURLSchemes:
+              - fixme
+        FMAppGroupIdentifier: $(FIXME_APP_GROUP)
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+    settings:
+      base:
+        CODE_SIGN_ENTITLEMENTS: FixMe/Resources/FixMe.entitlements
+        PRODUCT_BUNDLE_IDENTIFIER: $(FIXME_BUNDLE_ID)
+        PRODUCT_NAME: "Fix Me"
+        PRODUCT_MODULE_NAME: FixMe
+        GENERATE_INFOPLIST_FILE: YES
+        MARKETING_VERSION: "1.0.0"
+        CURRENT_PROJECT_VERSION: "1"
+    dependencies:
+      - target: FixMeWidgets
+        embed: true
+
+  FixMeWidgets:
+    type: app-extension
+    platform: iOS
+    sources:
+      - path: FixMe/Shared
+      - path: FixMeWidgets
+    info:
+      path: FixMeWidgets/Info.plist
+      properties:
+        CFBundleDisplayName: "Fix Me Widgets"
+        FMAppGroupIdentifier: $(FIXME_APP_GROUP)
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+    settings:
+      base:
+        CODE_SIGN_ENTITLEMENTS: FixMeWidgets/FixMeWidgets.entitlements
+        PRODUCT_BUNDLE_IDENTIFIER: $(FIXME_BUNDLE_ID).widgets
+        PRODUCT_NAME: "FixMeWidgets"
+        GENERATE_INFOPLIST_FILE: YES
+        SKIP_INSTALL: YES
+        MARKETING_VERSION: "1.0.0"
+        CURRENT_PROJECT_VERSION: "1"
+
+  FixMeTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: FixMeTests
+    dependencies:
+      - target: FixMe
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/Fix Me.app/Fix Me"
+        BUNDLE_LOADER: "$(TEST_HOST)"
+
+schemes:
+  FixMe:
+    build:
+      targets:
+        FixMe: all
+        FixMeTests: [test]
+    test:
+      targets:
+        - FixMeTests
+    run:
+      config: Debug
+      # Lets purchases be exercised end-to-end in the simulator with no App Store
+      # Connect setup. Remove (or point at real products) before shipping.
+      storeKitConfiguration: Products.storekit
