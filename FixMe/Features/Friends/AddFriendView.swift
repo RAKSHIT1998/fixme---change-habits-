@@ -69,7 +69,10 @@ struct AddFriendView: View {
                 if !cards.isEmpty { Haptics.notify(.warning) }
             }
             .sheet(isPresented: $showShareSheet) {
-                if let url = try? PeerLink.inviteURL(for: services.peerIdentity.identity.card) {
+                if let deepLink = try? PeerLink.inviteURL(for: services.peerIdentity.identity.card) {
+                    // Sent as an https link: a bare fixme:// link isn't tappable in most
+                    // messengers and does nothing for anyone without the app.
+                    let url = InviteLink.web(for: deepLink)
                     ActivityShareSheet(items: [inviteText(url: url), url])
                 }
             }
@@ -222,7 +225,7 @@ struct AddFriendView: View {
                 Text("Paste theirs")
                     .font(FMTheme.Typography.headline)
                     .foregroundStyle(FMTheme.Colors.textPrimary)
-                TextField("fixme://add-friend?d=…", text: $pastedLink, axis: .vertical)
+                TextField("Paste the invite link", text: $pastedLink, axis: .vertical)
                     .lineLimit(2...4)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()

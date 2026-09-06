@@ -168,7 +168,7 @@ struct ShareProgressView: View {
 
     private func makeLink() {
         do {
-            shareURL = try PeerLink.updateURL(for: try makeEnvelope())
+            shareURL = InviteLink.web(for: try PeerLink.updateURL(for: try makeEnvelope()))
             showShareSheet = true
         } catch {
             errorText = "Couldn't build that link: \(error.localizedDescription)"

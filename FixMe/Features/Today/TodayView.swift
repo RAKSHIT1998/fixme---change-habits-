@@ -17,6 +17,10 @@ struct TodayView: View {
     @State private var showNightReview = false
     @State private var paywallTrigger: PaywallTrigger?
     @State private var dismissedComeback = false
+    @State private var showReel = false
+    /// Which day number the milestone reel prompt was last offered for, so it appears
+    /// once per milestone rather than every launch.
+    @AppStorage("reelPromptedDay") private var reelPromptedDay = 0
 
     private var journey: Journey? { activeJourneys.first }
     private var user: User? { users.first }
@@ -75,6 +79,9 @@ struct TodayView: View {
                     CreateHabitView(journey: journey)
                 }
             }
+            .sheet(isPresented: $showReel) {
+                if let journey { ProgressReelView(journey: journey, user: user) }
+            }
             .sheet(isPresented: $showNightReview) {
                 if let journey {
                     NightReviewView(journey: journey)
@@ -130,6 +137,22 @@ struct TodayView: View {
                         }
                     }
                     .padding(.horizontal, FMTheme.Spacing.md)
+                } else if let milestone = ReelPrompt.milestone(
+                    day: journey.dayNumber(),
+                    lastPromptedDay: reelPromptedDay
+                ) {
+                    // Deliberately last: a streak about to break or one already broken is
+                    // a more urgent thing to say than "nice milestone, post about it".
+                    ReelPromptCard(milestone: milestone, totalDays: journey.lengthInDays) {
+                        reelPromptedDay = journey.dayNumber()
+                        showReel = true
+                    } onDismiss: {
+                        withAnimation { reelPromptedDay = journey.dayNumber() }
+                    }
+                    .padding(.horizontal, FMTheme.Spacing.md)
+                    .onAppear {
+                        services.analytics.track(.reelPromptShown(dayNumber: journey.dayNumber()))
+                    }
                 }
             }
 

@@ -7,9 +7,11 @@ Terms, and this regenerates docs/ from it. Re-run after editing the Swift file.
 
     python3 Scripts/generate-legal-html.py                  # relative links, no CNAME
     python3 Scripts/generate-legal-html.py --domain fixme.app
+    python3 Scripts/generate-legal-html.py --app-id 6740000000
 
 Pages produced in docs/:
     index.html    landing page (App Store Connect "Marketing URL")
+    i.html        invite lander — opens the app, or sends people to the App Store
     privacy.html  Privacy Policy   (required: "Privacy Policy URL")
     terms.html    Terms of Use / EULA
     support.html  Support + FAQ    (required: "Support URL")
@@ -25,6 +27,10 @@ SOURCE = ROOT / "FixMe/Features/Legal/LegalDocuments.swift"
 OUT = ROOT / "docs"
 
 SUPPORT_EMAIL = "rakshitbargotra@gmail.com"
+
+# Set once the app is live: App Store Connect > App Information > Apple ID.
+# Until then the invite page sends people to a search rather than a dead product URL.
+APP_STORE_ID = ""
 
 SECTION_RE = re.compile(
     r'LegalSection\(\s*heading:\s*"(?P<heading>[^"]+)",\s*body:\s*"""(?P<body>.*?)"""\s*\)',
@@ -117,9 +123,9 @@ FOOTER = ('Fix Me — 90 days. Better habits. Better you.<br>'
           'Questions: <a href="mailto:{email}">{email}</a>')
 
 
-def page(*, title, heading, description, body, subhead="", nav=NAV):
+def page(*, title, heading, description, body, subhead="", nav=NAV, extra_style=""):
     return PAGE.format(
-        title=title, heading=heading, description=description, style=STYLE,
+        title=title, heading=heading, description=description, style=STYLE + extra_style,
         subhead=subhead, body=body, nav=nav,
         footer=FOOTER.format(email=SUPPORT_EMAIL),
     )
@@ -226,6 +232,74 @@ SUPPORT_BODY = """
 """
 
 
+INVITE_BODY = """
+  <div class="card" id="intro">
+    <p id="headline"><strong>Someone wants you in on their 90 days.</strong></p>
+    <p id="detail">Opening Fix Me…</p>
+  </div>
+
+  <div id="fallback" hidden>
+    <h2>Get Fix Me</h2>
+    <p>Fix Me is a free 90-day habit tracker for iPhone. Build the habits you want, quit the
+    ones you don't — with everything stored on your own phone. No account, no server.</p>
+    <p><a class="cta" id="store" href="__STORE__">Get it on the App Store →</a></p>
+    <p id="code-note" hidden>Enter this code when you start: <strong id="code"></strong></p>
+    <p class="muted">Already installed it? <a href="#" onclick="openApp();return false;">Tap
+    here to open the invite</a>.</p>
+  </div>
+
+<script>
+  // The invite payload is passed straight through to the app. It is signed by the sender's
+  // device and verified there — this page never inspects it and cannot forge one.
+  var params = new URLSearchParams(location.search);
+  var kind = params.get("k");
+  var payload = params.get("d");
+  var code = params.get("c");
+
+  function appURL() {
+    if (kind && payload) return "fixme://" + kind + "?d=" + encodeURIComponent(payload);
+    return "fixme://open";
+  }
+
+  function openApp() { location.href = appURL(); }
+
+  if (code) {
+    document.getElementById("code").textContent = code;
+    document.getElementById("code-note").hidden = false;
+  }
+  if (kind === "update") {
+    document.getElementById("headline").innerHTML = "<strong>A friend sent you their progress.</strong>";
+  }
+
+  // Try the app first. If it isn't installed nothing happens and the page stays put, so
+  // show the App Store route shortly after. A backgrounded page means the app opened.
+  var showedFallback = false;
+  function showFallback() {
+    if (showedFallback || document.hidden) return;
+    showedFallback = true;
+    document.getElementById("intro").hidden = true;
+    document.getElementById("fallback").hidden = false;
+  }
+
+  if (kind && payload) {
+    openApp();
+    setTimeout(showFallback, 1500);
+  } else {
+    showFallback();
+  }
+  document.addEventListener("visibilitychange", function () {
+    if (document.hidden) showedFallback = true;  // the app took over
+  });
+</script>
+"""
+
+INVITE_STYLE = """
+  .cta { display:inline-block; background:var(--accent); color:#fff; font-weight:700;
+         padding:.85rem 1.4rem; border-radius:999px; text-decoration:none; margin:.4rem 0; }
+  .muted { font-size:.9rem; }
+"""
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--domain", help="custom domain to write into docs/CNAME, e.g. fixme.app")
@@ -266,6 +340,20 @@ def main() -> int:
             body=body,
         ))
         print(f"wrote docs/{name}.html  ({len(parsed)} sections)")
+
+    store_url = (
+        f"https://apps.apple.com/app/id{APP_STORE_ID}"
+        if APP_STORE_ID
+        else "https://www.apple.com/app-store/"
+    )
+    (OUT / "i.html").write_text(page(
+        title="You're invited — Fix Me",
+        heading="You're invited",
+        description="Someone invited you to their 90 days on Fix Me.",
+        body=INVITE_BODY.replace("__STORE__", store_url),
+        extra_style=INVITE_STYLE,
+    ))
+    print("wrote docs/i.html" + ("" if APP_STORE_ID else "  (no APP_STORE_ID set yet)"))
 
     (OUT / "support.html").write_text(page(
         title="Support — Fix Me",

@@ -34,6 +34,7 @@ enum AnalyticsEvent {
     // The reel loop. `reel_exported` is the one that matters — a rendered reel nobody
     // posts is a rendering cost, not a growth loop, and the render/export ratio is the
     // only way to tell the two apart.
+    case reelPromptShown(dayNumber: Int)
     case reelStarted(dayNumber: Int)
     case reelRendered(seconds: Int, scenes: Int)
     case reelExported(destination: String)
@@ -60,6 +61,7 @@ enum AnalyticsEvent {
         case .streakLost: return "streak_lost"
         case .comebackAfterMissedDay: return "comeback_after_missed_day"
         case .referralShared: return "referral_shared"
+        case .reelPromptShown: return "reel_prompt_shown"
         case .reelStarted: return "reel_started"
         case .reelRendered: return "reel_rendered"
         case .reelExported: return "reel_exported"

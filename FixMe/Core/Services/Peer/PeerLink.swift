@@ -6,8 +6,11 @@ import Foundation
 /// WhatsApp, email — whatever the two people already use. Those apps are only a transport;
 /// nothing is stored anywhere Fix Me controls, and no account exists to look anyone up in.
 ///
-/// A custom URL scheme is used deliberately over a universal link: universal links require
-/// a domain hosting an apple-app-site-association file, which would mean running a server.
+/// The scheme itself is deliberately not a universal link: those require an
+/// apple-app-site-association file served from a domain root, which the GitHub Pages
+/// subpath can't provide. `InviteLink` wraps these in an https:// page instead, which is
+/// what actually gets sent to other people — a bare fixme:// link is unclickable in most
+/// messaging apps and dead for anyone without the app installed.
 enum PeerLink {
     static let scheme = "fixme"
 
@@ -38,7 +41,12 @@ enum PeerLink {
 
     // MARK: - Parsing
 
+    /// Accepts both the raw `fixme://` link and the `https://` invite-page link that
+    /// wraps it (see `InviteLink`), so a pasted invite works whichever form it arrived in.
     static func parse(_ url: URL) throws -> Parsed {
+        if url.scheme != scheme, let unwrapped = InviteLink.deepLink(from: url) {
+            return try parse(unwrapped)
+        }
         guard url.scheme == scheme,
               let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
               let encoded = components.queryItems?.first(where: { $0.name == "d" })?.value,

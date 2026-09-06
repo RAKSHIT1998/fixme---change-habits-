@@ -15,11 +15,17 @@ struct ReferralView: View {
 
     private var code: String { user?.referralCode ?? "FIXME1" }
 
+    /// The link matters more than the code. Sharing a bare code asks the other person to
+    /// go and find the app themselves, which is where most of this funnel used to leak.
+    private var inviteLink: URL { InviteLink.referral(code: code) }
+
     private var inviteMessage: String {
         """
         I'm doing a 90-day habit reset in Fix Me. Want to do it with me?
 
-        Use my code \(code) and we both get a free week of Premium.
+        \(inviteLink.absoluteString)
+
+        My code is \(code) — we both get a free week of Premium.
         """
     }
 
@@ -72,7 +78,7 @@ struct ReferralView: View {
                 ToolbarItem(placement: .topBarLeading) { Button("Close") { dismiss() } }
             }
             .sheet(isPresented: $showShareSheet) {
-                ActivityShareSheet(items: [inviteMessage])
+                ActivityShareSheet(items: [inviteMessage, inviteLink])
             }
         }
     }

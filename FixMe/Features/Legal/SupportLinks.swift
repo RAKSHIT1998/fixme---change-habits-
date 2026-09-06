@@ -21,5 +21,5 @@ enum SupportLinks {
         return components.url ?? URL(string: "mailto:\(address)")!
     }
 
-    static let website = URL(string: "https://rakshit1998.github.io/fixme---change-habits-/support.html")!
+    static var website: URL { FixMeSite.support }
 }

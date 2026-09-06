@@ -230,3 +230,59 @@ struct ReelComposerTests {
         #expect(reel.sceneCount >= 2)
     }
 }
+
+/// The reel only reaches people who go looking for it unless something offers it. These
+/// pin the rules for when that offer appears.
+struct ReelPromptTests {
+
+    @Test func offersOnMilestoneDaysOnly() {
+        #expect(ReelPrompt.milestone(day: 30, lastPromptedDay: 0)?.day == 30)
+        #expect(ReelPrompt.milestone(day: 31, lastPromptedDay: 0) == nil)
+        #expect(ReelPrompt.milestone(day: 1, lastPromptedDay: 0) == nil)
+    }
+
+    /// Once per milestone. A card that comes back every launch is one people learn to
+    /// ignore, and it would be asking for the same reel twice.
+    @Test func neverOffersTheSameMilestoneTwice() {
+        #expect(ReelPrompt.milestone(day: 30, lastPromptedDay: 30) == nil)
+        #expect(ReelPrompt.milestone(day: 45, lastPromptedDay: 30)?.day == 45)
+    }
+
+    @Test func finishingTheJourneyGetsItsOwnLine() {
+        let final = Milestone(day: 90, title: "TRANSFORMED", emoji: "🏆")
+        let mid = Milestone(day: 30, title: "One Month", emoji: "🔥")
+        #expect(ReelPrompt.headline(for: final, totalDays: 90) == "You finished. Show them.")
+        #expect(ReelPrompt.headline(for: mid, totalDays: 90).contains("30 days"))
+    }
+}
+
+/// Invites are the loop that already existed, and it leaked: a bare `fixme://` link does
+/// nothing for anyone without the app and isn't even tappable in most messengers.
+struct InviteLinkTests {
+
+    @Test func wrapsDeepLinksAsHTTPSWithoutLosingThePayload() throws {
+        let deep = try #require(URL(string: "fixme://add-friend?d=abc-_123"))
+        let web = InviteLink.web(for: deep)
+
+        #expect(web.scheme == "https", "an invite has to be a link other apps will linkify")
+        #expect(web.absoluteString.contains("k=add-friend"))
+
+        let recovered = try #require(InviteLink.deepLink(from: web))
+        #expect(recovered.scheme == "fixme")
+        #expect(recovered.host == "add-friend")
+        let payload = URLComponents(url: recovered, resolvingAgainstBaseURL: false)?
+            .queryItems?.first(where: { $0.name == "d" })?.value
+        #expect(payload == "abc-_123", "payload must survive the round trip byte for byte")
+    }
+
+    @Test func referralLinksCarryTheCode() {
+        let url = InviteLink.referral(code: "AB12CD")
+        #expect(url.scheme == "https")
+        #expect(url.absoluteString.contains("c=AB12CD"))
+    }
+
+    @Test func nonInviteLinksUnwrapToNothing() {
+        #expect(InviteLink.deepLink(from: FixMeSite.support) == nil)
+        #expect(InviteLink.deepLink(from: URL(string: "https://example.com/?k=add-friend")!) == nil)
+    }
+}
