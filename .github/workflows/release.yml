@@ -79,6 +79,14 @@ jobs:
           security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k runner "$KEYCHAIN" >/dev/null
           security list-keychains -d user -s "$KEYCHAIN" $(security list-keychains -d user | tr -d '"')
           rm "$RUNNER_TEMP/dist.p12"
+          # A .p12 exported without its private key imports without complaint and then
+          # fails much later inside xcodebuild with an opaque signing error. Assert here
+          # instead, where the message can say what actually went wrong.
+          if ! security find-identity -v -p codesigning "$KEYCHAIN" | grep -q "Apple Distribution"; then
+            echo "::error::No Apple Distribution signing identity in the imported .p12. Re-export from Keychain Access using the My Certificates tab, which includes the private key."
+            security find-identity -v -p codesigning "$KEYCHAIN" || true
+            exit 1
+          fi
           security find-identity -v -p codesigning "$KEYCHAIN"
 
       - name: Write App Store Connect API key
