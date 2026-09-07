@@ -24,6 +24,7 @@ enum PersistenceController {
             Friend.self,
             FriendUpdate.self,
             StakeChallenge.self,
+            Pact.self,
         ])
     }
 

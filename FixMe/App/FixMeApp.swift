@@ -24,6 +24,9 @@ struct RootView: View {
     @Environment(\.services) private var services
     @Environment(\.modelContext) private var modelContext
     @State private var linkResult: String?
+    /// A shared-start invitation waiting to be shown. Presented as a sheet rather than
+    /// applied silently — accepting changes the user's journey, so they have to say yes.
+    @State private var pendingPact: PendingPact?
 
     var body: some View {
         Group {
@@ -55,6 +58,9 @@ struct RootView: View {
             set: { appState.showGuideOnLaunch = $0 }
         )) {
             HowToUseView()
+        }
+        .sheet(item: $pendingPact) { pending in
+            PactInviteSheet(payload: pending.payload)
         }
         .alert("Fix Me", isPresented: Binding(
             get: { linkResult != nil },
@@ -101,6 +107,9 @@ extension RootView {
                     linkResult = "You already had that update."
                 }
                 appState.selectedTab = .social
+            case .pact(let payload):
+                // Not applied here: it sets a start date, which is the user's decision.
+                pendingPact = PendingPact(payload: payload)
             }
             Haptics.notify(.success)
         } catch {

@@ -6,6 +6,7 @@ struct TodayView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.services) private var services
     @Environment(\.requestReview) private var requestReview
+    @Environment(AppState.self) private var appState
     @Query(filter: #Predicate<Journey> { $0.isActive }, sort: \Journey.startDate, order: .reverse)
     private var activeJourneys: [Journey]
     @Query private var users: [User]
@@ -138,6 +139,15 @@ struct TodayView: View {
 
         VStack(spacing: FMTheme.Spacing.lg) {
             DayHeaderView(journey: journey, completionFraction: fraction, userName: user?.name)
+
+            if let pact = activePact {
+                PactRow(
+                    pact: pact,
+                    myDayNumber: pact.hasStarted ? journey.dayNumber() : nil,
+                    partnerUpdate: PactService(modelContext: modelContext).latestUpdate(for: pact)
+                ) { appState.selectedTab = .social }
+                .padding(.horizontal, FMTheme.Spacing.md)
+            }
 
             if activeStake == nil,
                StakeInvitation.shouldOffer(
@@ -312,6 +322,8 @@ struct TodayView: View {
     }
 
     private var activeStake: StakeChallenge? { challenges.first(where: \.isActive) }
+
+    private var activePact: Pact? { PactService(modelContext: modelContext).activePact() }
 
     /// Re-checks the challenge and records the moment it ends. Called on appear and after
     /// every habit change, because "you missed yesterday" has to be told at the first

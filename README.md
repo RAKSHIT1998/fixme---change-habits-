@@ -175,6 +175,32 @@ rejected — there are tests for each.
 The contact picker runs out of process, so the app needs **no Contacts permission** and
 never sees the address book — it only pre-fills an invite message.
 
+## Start together
+
+**Profile › Settings › Start 90 days with a friend.** Pick a day in the next fortnight,
+send the link, and you're both on the same day number for the whole run. Today shows a
+side-by-side row: your day, their day, and when they last sent an update.
+
+The referral screen asks someone to join *sometime*, which is a favour they can defer
+forever. This asks for a specific day, which is an appointment — and it makes the invite
+functional rather than altruistic, because a shared start doesn't exist unless the other
+person turns up. Accountability partners also finish more often, so the growth mechanic and
+the product are the same thing here.
+
+The link carries the sender's identity card, so accepting pairs the two phones and sets the
+start date in one step; asking someone to accept an invite and then separately add a friend
+is where people drop out.
+
+**Accepting never rewrites a journey already in progress.** Moving someone's start date
+would renumber every day they had completed and invalidate their history, so a person who
+is already mid-run keeps their journey and the pact records that the two aren't aligned —
+the row says so rather than showing numbers that silently disagree. A start date that has
+already passed begins today rather than backdating days nobody did.
+
+Their number only moves when they actually send an update, because there's no server to
+poll. The row shows when it last heard from them instead of presenting a stale figure as
+current.
+
 ## Challenges — staking something on it
 
 **Profile › Settings › Start a challenge.** Pick an amount, name who collects if you fail,

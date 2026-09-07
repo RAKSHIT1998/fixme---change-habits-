@@ -17,6 +17,9 @@ enum PeerLink {
     enum Parsed {
         case invite(IdentityCard)
         case update(SignedEnvelope)
+        /// An invitation to start a 90-day run on the same day. Pairs the two devices as
+        /// part of accepting, so it carries an identity card of its own.
+        case pact(PactInvitePayload)
     }
 
     // MARK: - Building
@@ -27,6 +30,10 @@ enum PeerLink {
 
     static func updateURL(for envelope: SignedEnvelope) throws -> URL {
         try url(host: "update", value: envelope)
+    }
+
+    static func pactURL(for payload: PactInvitePayload) throws -> URL {
+        try url(host: "start-together", value: payload)
     }
 
     private static func url<T: Encodable>(host: String, value: T) throws -> URL {
@@ -58,6 +65,8 @@ enum PeerLink {
             return .invite(try JSONDecoder.peer.decode(IdentityCard.self, from: data))
         case "update":
             return .update(try JSONDecoder.peer.decode(SignedEnvelope.self, from: data))
+        case "start-together":
+            return .pact(try JSONDecoder.peer.decode(PactInvitePayload.self, from: data))
         default:
             throw PeerError.malformedLink
         }

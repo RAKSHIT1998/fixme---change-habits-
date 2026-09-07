@@ -11,6 +11,7 @@ struct SettingsView: View {
     @State private var showPaywall = false
     @State private var showReferral = false
     @State private var showStakeSetup = false
+    @State private var showStartTogether = false
     @State private var showStakeDetail = false
     @Query(sort: \StakeChallenge.startDate, order: .reverse) private var stakes: [StakeChallenge]
     @Query(filter: #Predicate<Journey> { $0.isActive }) private var activeJourneys: [Journey]
@@ -113,6 +114,12 @@ struct SettingsView: View {
                 }
 
                 Section("Invite") {
+                    Button("Start 90 days with a friend") { showStartTogether = true }
+                        .fontWeight(.semibold)
+                    Text("Pick a day you both begin. Same day number the whole way, which is the part that makes people show up.")
+                        .font(FMTheme.Typography.footnote)
+                        .foregroundStyle(FMTheme.Colors.textSecondary)
+
                     Button("Invite a friend") { showReferral = true }
                     Text("You both get a free week of Premium when they start their 90 days.")
                         .font(FMTheme.Typography.footnote)
@@ -143,6 +150,9 @@ struct SettingsView: View {
             }
             .sheet(isPresented: $showPaywall) { PaywallView(trigger: .settings) }
             .sheet(isPresented: $showHowTo) { HowToUseView() }
+            .sheet(isPresented: $showStartTogether) {
+                StartTogetherView(journey: activeJourneys.first)
+            }
             .sheet(isPresented: $showStakeSetup) {
                 if let journey = activeJourneys.first { StakeSetupView(journey: journey) }
             }
