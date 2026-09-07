@@ -231,3 +231,146 @@ struct StakeNotificationCopyTests {
         #expect(last.contains("Last day"))
     }
 }
+
+/// What gets scheduled, and — more importantly — what doesn't.
+@MainActor
+struct StakeNotificationPlanTests {
+    let container: ModelContainer
+    let calendar = Calendar.current
+
+    init() throws {
+        container = try ModelContainer(
+            for: PersistenceController.schema,
+            configurations: [ModelConfiguration(isStoredInMemoryOnly: true)]
+        )
+    }
+
+    private let day0 = Date(timeIntervalSince1970: 1_700_000_000)
+    private func start() -> Date { calendar.startOfDay(for: day0) }
+    private func day(_ n: Int) -> Date { calendar.date(byAdding: .day, value: n - 1, to: start())! }
+    /// A time on day `n`, so "before/after the 8am and 8:30pm slots" is expressible.
+    private func day(_ n: Int, atHour hour: Int) -> Date {
+        calendar.date(bySettingHour: hour, minute: 0, second: 0, of: day(n))!
+    }
+
+    private func challenge(length: Int = 90) -> StakeChallenge {
+        let c = StakeChallenge(startDate: start(), lengthInDays: length, stakeAmount: 50)
+        container.mainContext.insert(c)
+        return c
+    }
+
+    private func habit() -> Habit {
+        let h = Habit(name: "Read", iconSystemName: "book", category: .learning,
+                      verificationType: .manual, goalDescription: "", createdAt: start())
+        container.mainContext.insert(h)
+        return h
+    }
+
+    private func complete(_ habit: Habit, onDay n: Int) {
+        let completion = HabitCompletion(date: day(n), state: .completed)
+        completion.habit = habit
+        habit.completions.append(completion)
+    }
+
+    /// The behaviour the whole design rests on: finishing the day stands the threat down.
+    /// A warning that fires after the day is safe teaches people these notifications lie.
+    @Test func todaysWarningDisappearsOnceTheDayIsDone() {
+        let c = challenge()
+        let h = habit()
+        let noon = day(1, atHour: 12)
+
+        let whileOpen = StakeNotifications.plan(challenge: c, habits: [h], calendar: calendar, now: noon)
+        #expect(whileOpen.contains { $0.kind == .warning && $0.day == 1 })
+
+        complete(h, onDay: 1)
+
+        let whenDone = StakeNotifications.plan(challenge: c, habits: [h], calendar: calendar, now: noon)
+        #expect(whenDone.contains { $0.kind == .warning && $0.day == 1 } == false)
+        // Tomorrow's reminders still stand — only today's threat is retired.
+        #expect(whenDone.contains { $0.day == 2 })
+    }
+
+    @Test func todaysWarningNamesWhatIsOpenAndWhatItCosts() throws {
+        let c = challenge()
+        let h = habit()
+        let plan = StakeNotifications.plan(challenge: c, habits: [h], calendar: calendar, now: day(1, atHour: 12))
+
+        let warning = try #require(plan.first { $0.kind == .warning && $0.day == 1 })
+        #expect(warning.body.contains("1 habit left"))
+        // Compared against the challenge's own formatting rather than a literal: the stake
+        // is shown in the user's currency, so "$50" only passes on a US-locale machine.
+        #expect(warning.body.contains(c.formattedStake))
+    }
+
+    /// A "good morning, day 34" arriving in the afternoon reads as a bug.
+    @Test func todaysMorningIsSkippedOnceTheMorningHasPassed() {
+        let c = challenge()
+        let h = habit()
+
+        let earlyPlan = StakeNotifications.plan(challenge: c, habits: [h], calendar: calendar, now: day(1, atHour: 6))
+        #expect(earlyPlan.contains { $0.kind == .morning && $0.day == 1 })
+
+        let latePlan = StakeNotifications.plan(challenge: c, habits: [h], calendar: calendar, now: day(1, atHour: 12))
+        #expect(latePlan.contains { $0.kind == .morning && $0.day == 1 } == false)
+    }
+
+    /// iOS allows 64 pending notifications for the whole app, alarms included. Ninety days
+    /// of reminders would blow through that and silently drop the ones that matter.
+    @Test func staysWellInsideTheSystemLimit() {
+        let c = challenge()
+        let h = habit()
+        let plan = StakeNotifications.plan(challenge: c, habits: [h], calendar: calendar, now: day(1, atHour: 6))
+
+        #expect(plan.count <= StakeNotifications.windowDays * 2)
+        #expect(plan.count < 20, "has to leave room for alarms in the same 64-slot budget")
+        #expect(Set(plan.map(\.id)).count == plan.count, "duplicate ids would overwrite each other")
+    }
+
+    @Test func nothingIsPlannedPastTheFinalDay() {
+        let c = challenge(length: 2)
+        let h = habit()
+        let plan = StakeNotifications.plan(challenge: c, habits: [h], calendar: calendar, now: day(1, atHour: 6))
+
+        #expect(plan.allSatisfy { $0.day <= 2 })
+    }
+
+    /// Nagging someone about a challenge they already lost is the worst message this app
+    /// could send.
+    @Test func aResolvedChallengeSchedulesNothing() {
+        let c = challenge()
+        let h = habit()
+        c.outcome = .lost
+        c.failedOnDay = 1
+
+        #expect(StakeNotifications.plan(challenge: c, habits: [h], calendar: calendar, now: day(2, atHour: 6)).isEmpty)
+    }
+}
+
+/// When to *ask* someone to stake money. Getting this wrong is worse than not asking:
+/// this is the one prompt in the app that costs the user real money to say yes to.
+struct StakeInvitationTests {
+
+    @Test func offersOnceThereIsARunWorthProtecting() {
+        #expect(StakeInvitation.shouldOffer(dayNumber: 12, habitCount: 3, longestStreak: 8, dismissedOnDay: 0))
+    }
+
+    /// Asking someone on day 2 to bet on 90 days is asking a stranger for money.
+    @Test func neverAsksTooEarly() {
+        #expect(StakeInvitation.shouldOffer(dayNumber: 3, habitCount: 3, longestStreak: 3, dismissedOnDay: 0) == false)
+    }
+
+    /// Offering a stake to someone already missing days is selling them a loss.
+    @Test func neverAsksSomeoneWhoIsStruggling() {
+        #expect(StakeInvitation.shouldOffer(dayNumber: 40, habitCount: 3, longestStreak: 1, dismissedOnDay: 0) == false)
+    }
+
+    @Test func neverAsksWithNoHabits() {
+        #expect(StakeInvitation.shouldOffer(dayNumber: 40, habitCount: 0, longestStreak: 9, dismissedOnDay: 0) == false)
+    }
+
+    /// "Not for me" has to mean it for a good while, not until tomorrow morning.
+    @Test func backsOffAfterBeingWavedAway() {
+        #expect(StakeInvitation.shouldOffer(dayNumber: 21, habitCount: 3, longestStreak: 9, dismissedOnDay: 20) == false)
+        #expect(StakeInvitation.shouldOffer(dayNumber: 35, habitCount: 3, longestStreak: 9, dismissedOnDay: 20))
+    }
+}

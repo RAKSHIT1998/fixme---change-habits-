@@ -24,6 +24,9 @@ struct TodayView: View {
     @State private var completedDay: (day: Int, score: Int)?
     @State private var showStakeSetup = false
     @State private var showStakeDetail = false
+    /// Day the challenge offer was last waved away, so it asks again later rather than
+    /// every single morning.
+    @AppStorage("stakeOfferDismissedDay") private var stakeOfferDismissedDay = 0
     @Query(sort: \StakeChallenge.startDate, order: .reverse) private var challenges: [StakeChallenge]
     /// Which day number the milestone reel prompt was last offered for, so it appears
     /// once per milestone rather than every launch.
@@ -74,11 +77,13 @@ struct TodayView: View {
                         services.premium.recordAIVerificationUse()
                     }
                     viewModel?.applyVerification(habit, outcome: outcome, imageFileName: fileName)
+                    stakeDidChange()
                 }
             }
             .sheet(item: $waterHabitForLogging) { habit in
                 QuickLogSheet(habit: habit) { amount in
                     viewModel?.addProgress(habit, delta: amount)
+                    stakeDidChange()
                 }
                 .presentationDetents([.height(280)])
             }
@@ -133,6 +138,20 @@ struct TodayView: View {
 
         VStack(spacing: FMTheme.Spacing.lg) {
             DayHeaderView(journey: journey, completionFraction: fraction, userName: user?.name)
+
+            if activeStake == nil,
+               StakeInvitation.shouldOffer(
+                   dayNumber: journey.dayNumber(),
+                   habitCount: habits.count,
+                   longestStreak: habits.map { $0.currentStreak() }.max() ?? 0,
+                   dismissedOnDay: stakeOfferDismissedDay
+               ) {
+                StakeOfferCard(
+                    onStart: { showStakeSetup = true },
+                    onDismiss: { withAnimation { stakeOfferDismissedDay = journey.dayNumber() } }
+                )
+                .padding(.horizontal, FMTheme.Spacing.md)
+            }
 
             if let challenge = activeStake {
                 // Above the streak cards deliberately: it is the only thing on this screen
@@ -259,12 +278,18 @@ struct TodayView: View {
                 waterHabitForLogging = habit
             } else {
                 viewModel.markManualComplete(habit)
+                stakeDidChange()
             }
         case .timer:
             viewModel.markManualComplete(habit)
+            stakeDidChange()
         case .healthKit, .location:
             // Progress arrives passively from HealthKit/location; tapping just refreshes.
-            Task { await services.healthKit.refreshTodayMetrics() }
+            Task {
+                await services.healthKit.refreshTodayMetrics()
+                syncHealthKit(journey: journey)
+                stakeDidChange()
+            }
         }
     }
 
@@ -296,9 +321,12 @@ struct TodayView: View {
         StakeService(modelContext: modelContext).refresh(challenge, habits: journey.habits)
     }
 
-    /// Called after any habit change. Finishing the last open habit is exactly what should
-    /// stand tonight's "you'll lose it" warning down, and leaving it scheduled after the
-    /// day is safe is the fastest way to teach someone to ignore these.
+    /// Called after any habit change.
+    ///
+    /// Finishing the last open habit is exactly what should stand tonight's "you'll lose
+    /// it" warning down. Leaving it scheduled after the day is already safe is the fastest
+    /// way to teach someone that these notifications lie, and then they stop reading the
+    /// one that matters.
     private func stakeDidChange() {
         refreshStake()
     }

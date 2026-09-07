@@ -29,27 +29,41 @@ enum StakeNotifications {
     private static func morningID(day: Int) -> String { "\(prefix)morning.\(day)" }
     private static func warningID(day: Int) -> String { "\(prefix)warning.\(day)" }
 
-    /// Rebuilds the whole window from current state. Safe to call often — it clears its own
-    /// notifications first, so it can't double-schedule.
-    static func reschedule(
+    /// One reminder the plan says to send. Separated from the sending so the decisions —
+    /// what to say, when, and whether to say anything at all — can be tested without a
+    /// notification centre.
+    struct Planned: Equatable {
+        enum Kind: Equatable { case morning, warning }
+        let id: String
+        let kind: Kind
+        let day: Int
+        let title: String
+        let body: String
+        let date: Date
+    }
+
+    /// What should be scheduled right now, given the state of the challenge.
+    ///
+    /// Pure. The important decision lives here: today's evening warning is only planned
+    /// while something is still open, so finishing the day stands it down. A warning that
+    /// fires after the day is already safe teaches people these notifications lie, and
+    /// then they stop reading the one that matters.
+    static func plan(
         challenge: StakeChallenge,
         habits: [Habit],
         calendar: Calendar = .current,
         now: Date = .now
-    ) {
-        clearAll()
-        guard challenge.isActive else { return }
+    ) -> [Planned] {
+        guard challenge.isActive else { return [] }
 
-        let status = StakeRules.status(for: challenge, habits: habits, calendar: calendar, now: now)
-        switch status {
-        case .lost, .won:
-            return
-        case .safe, .atRisk:
-            break
+        switch StakeRules.status(for: challenge, habits: habits, calendar: calendar, now: now) {
+        case .lost, .won: return []
+        case .safe, .atRisk: break
         }
 
         let today = StakeRules.dayNumber(for: challenge, on: now, calendar: calendar)
         let stake = challenge.formattedStake
+        var planned: [Planned] = []
 
         for offset in 0..<windowDays {
             let day = today + offset
@@ -59,35 +73,52 @@ enum StakeNotifications {
 
             let isToday = offset == 0
 
-            // Morning: name the day and what's riding on it. Skipped for today if the
-            // morning has already passed — a "good morning" at 3pm reads like a bug.
+            // A "good morning, day 34" arriving at 3pm reads as a bug, so today's is only
+            // planned if the morning hasn't already gone.
             if let morning = calendar.date(bySettingHour: 8, minute: 0, second: 0, of: date),
                morning > now {
-                schedule(
+                planned.append(Planned(
                     id: morningID(day: day),
+                    kind: .morning,
+                    day: day,
                     title: "Day \(day) of \(challenge.lengthInDays)",
                     body: morningBody(day: day, total: challenge.lengthInDays, stake: stake),
-                    at: morning
-                )
+                    date: morning
+                ))
             }
 
-            // Evening: the one that actually saves challenges. For today it's only worth
-            // sending if something is still open.
             let openNow = isToday
                 ? StakeRules.openHabitCount(habits: habits, on: date, calendar: calendar)
                 : 1
             if openNow > 0,
                let warning = calendar.date(bySettingHour: 20, minute: 30, second: 0, of: date),
                warning > now {
-                schedule(
+                planned.append(Planned(
                     id: warningID(day: day),
+                    kind: .warning,
+                    day: day,
                     title: "⚠️ Day \(day) isn't done",
                     body: isToday
                         ? "\(openNow) habit\(openNow == 1 ? "" : "s") left. Miss today and the challenge — and \(stake) — is gone."
                         : "Finish today to keep the challenge alive. One miss ends it.",
-                    at: warning
-                )
+                    date: warning
+                ))
             }
+        }
+        return planned
+    }
+
+    /// Rebuilds the whole window from current state. Safe to call often — it clears its own
+    /// notifications first, so it can't double-schedule.
+    static func reschedule(
+        challenge: StakeChallenge,
+        habits: [Habit],
+        calendar: Calendar = .current,
+        now: Date = .now
+    ) {
+        clearAll()
+        for item in plan(challenge: challenge, habits: habits, calendar: calendar, now: now) {
+            schedule(id: item.id, title: item.title, body: item.body, at: item.date)
         }
     }
 
