@@ -92,21 +92,34 @@ higher self-selected rating, never a lower one.
 
 ## 5. In-app purchases — set these up before submitting
 
-Create these in App Store Connect → Monetization, with **exactly** these product IDs
-(they come from `Products.storekit` and are hard-coded expectations of the app):
+**These now exist** — created via the App Store Connect API (`Scripts/appstore-connect.py`)
+against app `6809448798`:
 
-| Product ID | Type | Price in the local config |
-|---|---|---|
-| `com.fixme.app.premium.monthly` | Auto-renewable, group "Fix Me Premium" | $9.99 / month |
-| `com.fixme.app.premium.yearly` | Auto-renewable, same group, **7-day free trial** | $39.99 / year |
-| `com.fixme.app.premium.lifetime` | Non-consumable | $79.99 |
+| Product ID | Type | Localized | Price |
+|---|---|---|---|
+| `com.fixme.app.premium.monthly` | Auto-renewable, group "Fix Me Premium" (22366183) | ✅ | ⚠️ **not set** — $9.99 |
+| `com.fixme.app.premium.yearly` | Auto-renewable, same group | ✅ | ⚠️ **not set** — $39.99, plus the 7-day free trial |
+| `com.fixme.app.premium.lifetime` | Non-consumable | ✅ | ✅ $79.99 |
 
-⚠️ Note the mismatch: product IDs start `com.fixme.app.` while the bundle id is
-`com.rakshitbargotra.fixme`. Apple allows that, but the IDs must be created character-for-character
-as above or purchases fail in review. Rename them in both places if you want them to match.
+⚠️ **Set the two subscription prices and the free trial in the web UI.** The API refuses
+them: `POST /v1/subscriptionPrices` returns `409 ENTITY_ERROR.RELATIONSHIP.INVALID`
+pointing at `subscriptionPricePoint/id`, using a price point read moments earlier from that
+same subscription's own `/pricePoints` endpoint. The account is not the problem — the
+non-consumable's price went through the equivalent `inAppPurchasePriceSchedules` endpoint
+on the first try. Payload shape, territory, and stale-token theories were all ruled out. It
+takes about two minutes by hand:
 
-Each IAP needs its own name, description, review screenshot and a submitted-for-review
-state. Attach all three to the app version so they review together.
+> Monetization → Subscriptions → Fix Me Premium → each subscription → **Subscription Prices**
+> → Add Price → United States → 9.99 / 39.99. Then on the yearly one, **Introductory
+> Offers** → Free trial, 1 week, all territories.
+
+Note the product IDs start `com.fixme.app.` while the bundle id is
+`com.rakshitbargotra.fixme`. Apple allows it, and **they are now permanent** — a product ID
+can never be renamed or reused once created.
+
+Names and descriptions are done. Each product still needs a **review screenshot**, which
+can only be uploaded through the web UI, and all three must be attached to the app version
+so they review together.
 
 **Paywall compliance — already satisfied** (`FixMe/Features/Paywall/PaywallView.swift`):
 price and period shown per plan, renewal terms in the footer text, plus working
