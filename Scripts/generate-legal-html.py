@@ -28,9 +28,8 @@ OUT = ROOT / "docs"
 
 SUPPORT_EMAIL = "rakshitbargotra@gmail.com"
 
-# Set once the app is live: App Store Connect > App Information > Apple ID.
-# Until then the invite page sends people to a search rather than a dead product URL.
-APP_STORE_ID = ""
+# App Store Connect > App Information > Apple ID.
+APP_STORE_ID = "6809448798"
 
 SECTION_RE = re.compile(
     r'LegalSection\(\s*heading:\s*"(?P<heading>[^"]+)",\s*body:\s*"""(?P<body>.*?)"""\s*\)',

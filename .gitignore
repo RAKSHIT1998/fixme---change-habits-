@@ -15,3 +15,6 @@ xcuserdata/
 # Superseded by docs/, which is what GitHub Pages serves. It is also a separate
 # git repo, which would land here as a broken gitlink.
 legal-site/
+
+# Exported archives/IPAs — build output, not source
+build/

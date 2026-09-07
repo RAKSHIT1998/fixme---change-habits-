@@ -22,14 +22,10 @@ branch `main`, folder `/docs` → Save. First build takes a minute or two.
 Then open all four URLs and confirm they load before you submit — a dead Privacy or
 Support URL is an instant rejection.
 
-⚠️ **Set `APP_STORE_ID` once the app is approved.** Until then `i.html` sends people to
-Apple's generic App Store page instead of your listing, which wastes every invite a
-non-user taps. Take the Apple ID from App Store Connect → App Information, put it in
-`Scripts/generate-legal-html.py`, re-run the generator and push:
-
-```bash
-python3 Scripts/generate-legal-html.py     # after setting APP_STORE_ID
-```
+The app record exists: **Apple ID `6809448798`**, name **Fix Me: 90-Day Habits**, bundle id
+`com.rakshitbargotra.fixme`. (The plain name "Fix Me" was already taken — App Store names
+are globally unique.) `APP_STORE_ID` is set in the generator, so invite links land on the
+real listing.
 
 ⚠️ Using a custom domain instead? Run
 `python3 Scripts/generate-legal-html.py --domain yourdomain.com`, push, then set the same
@@ -153,7 +149,7 @@ Paste into "Notes" on the version page:
 
 ## 7. Store metadata
 
-**Name (30):** `Fix Me: 90-Day Habit Tracker`
+**Name (30):** `Fix Me: 90-Day Habits` — already registered under this name.
 
 **Subtitle (30):** `Build habits. Quit the rest.`
 
@@ -261,9 +257,11 @@ none, and a screenshot that implies otherwise is a rejection risk.
 - [ ] Regenerate the site after any edit to `LegalDocuments.swift` so the hosted text and the
       in-app text match — review compares them: `python3 Scripts/generate-legal-html.py`
 - [ ] `xcodebuild ... test` passes.
-- [ ] `APP_STORE_ID` is set in `Scripts/generate-legal-html.py` and `docs/i.html`
-      regenerated — see §1. Tap an invite link on a device without the app to confirm it
-      lands on your listing.
+- [x] `APP_STORE_ID` set to 6809448798 and `docs/i.html` regenerated. Still worth tapping
+      an invite link on a device without the app once the listing is live.
+- [ ] **Build with Xcode 26 or later.** App Store Connect rejects anything built against an
+      SDK older than iOS 26 — the upload fails validation with a 409 before review ever
+      sees it. That needs macOS 15+ on the build machine.
 
 ---
 
