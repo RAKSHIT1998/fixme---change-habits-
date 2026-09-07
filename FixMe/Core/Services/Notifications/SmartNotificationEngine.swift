@@ -21,7 +21,15 @@ enum SmartNotificationEngine {
         static let milestone = "fixme.smart.milestone"
     }
 
-    static func scheduleBehavioralReminders(journey: Journey, notifications: NotificationManager) {
+    /// `stakeIsActive` suppresses the two nudges `StakeNotifications` replaces.
+    /// Sending both would put five notifications a day in front of someone, which is how
+    /// an app gets its notifications switched off for good — and a challenge nobody is
+    /// reminded about is a challenge that quietly fails.
+    static func scheduleBehavioralReminders(
+        journey: Journey,
+        notifications: NotificationManager,
+        stakeIsActive: Bool = false
+    ) {
         let center = UNUserNotificationCenter.current()
         center.removePendingNotificationRequests(withIdentifiers: [
             ID.morning, ID.streakRisk, ID.nightReview, ID.milestone,
@@ -31,15 +39,18 @@ enum SmartNotificationEngine {
         let streak = journey.habits.map { $0.currentStreak() }.max() ?? 0
 
         // 1. Morning: name the day, so opening the app has a purpose.
-        schedule(
-            id: ID.morning,
-            title: "Day \(dayNumber) starts now",
-            body: morningBody(streak: streak),
-            hour: 7, minute: 0
-        )
+        if !stakeIsActive {
+            schedule(
+                id: ID.morning,
+                title: "Day \(dayNumber) starts now",
+                body: morningBody(streak: streak),
+                hour: 7, minute: 0
+            )
+        }
 
         // 2. Evening: the streak-protection nudge. Highest-intent message we send.
-        if streak > 0 {
+        // A challenge sends a harder-edged version of this, so don't send both.
+        if streak > 0, !stakeIsActive {
             schedule(
                 id: ID.streakRisk,
                 title: "🔥 \(streak) days on the line",

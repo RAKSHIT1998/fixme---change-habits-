@@ -274,6 +274,13 @@ each device a week of Premium locally (`ReferralCredit`), capped at 28 days life
 once per friend. It is not a purchase, involves no server, and unlocks the same features a
 subscription does. Nothing is collected about either person.
 
+**Challenges and the "$50 stake".** The app records a pledge and never collects, holds,
+charges or refunds money. There is no payment flow, no IAP involved, and no third party
+receives funds — `StakeChallenge` stores an amount the user typed and the name of whoever
+they told. Settling up happens entirely outside the app. This is stated on the setup screen
+above the confirmation toggle and again on the challenge screen, so a reviewer will see it
+without going looking.
+
 **The rating prompt.** `ReviewPrompt` uses the standard `requestReview` action and only
 fires after a completed day scoring 80+, or on a milestone day, no earlier than day 7 and
 at most once per version. It never appears during onboarding, after a missed day, or

@@ -23,6 +23,7 @@ enum PersistenceController {
             HabitAlarm.self,
             Friend.self,
             FriendUpdate.self,
+            StakeChallenge.self,
         ])
     }
 

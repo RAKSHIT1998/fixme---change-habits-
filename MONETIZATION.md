@@ -80,6 +80,19 @@ Retention *is* the revenue model: LTV is roughly ARPU × months retained.
   the invite screen's promise real, and gives non-payers a taste of the paid tier at the
   moment they've just done the thing we want more of.
 
+### Challenges
+
+A stake is the strongest retention mechanic available here, and it is free. Someone who has
+put $50 on finishing opens the app every single day, because the alternative costs them
+money — no notification can compete with that.
+
+It is deliberately **not** monetized and not gated. Charging for the privilege of putting
+your own money at risk would be indefensible, and any flow where Fix Me collects the stake
+turns a habit tracker into a wagering business: Apple can't refund an IAP programmatically,
+and holding contingent stakes needs licensing this project doesn't have. If real money is
+ever handled it belongs on the web, outside the App Store, the way Beeminder and StickK do
+it — and that is a company decision, not a feature flag.
+
 ## Funnel instrumentation
 
 `AnalyticsEvent` already emits the events that tell you whether this works. Wire

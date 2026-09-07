@@ -10,6 +10,10 @@ struct SettingsView: View {
     @State private var showDeleteDataConfirm = false
     @State private var showPaywall = false
     @State private var showReferral = false
+    @State private var showStakeSetup = false
+    @State private var showStakeDetail = false
+    @Query(sort: \StakeChallenge.startDate, order: .reverse) private var stakes: [StakeChallenge]
+    @Query(filter: #Predicate<Journey> { $0.isActive }) private var activeJourneys: [Journey]
     @State private var showHowTo = false
     @State private var exportURL: URL?
     @State private var showExportSheet = false
@@ -93,6 +97,21 @@ struct SettingsView: View {
                     }
                 }
 
+                Section("Challenge") {
+                    if let challenge = activeStake {
+                        Button("View my challenge") { showStakeDetail = true }
+                        Text("\(challenge.formattedStake) staked. Miss one day and it's over.")
+                            .font(FMTheme.Typography.footnote)
+                            .foregroundStyle(FMTheme.Colors.textSecondary)
+                    } else {
+                        Button("Start a challenge") { showStakeSetup = true }
+                            .fontWeight(.semibold)
+                        Text("Stake something on finishing your 90 days. Miss a single day and it's gone — which is exactly why it works.")
+                            .font(FMTheme.Typography.footnote)
+                            .foregroundStyle(FMTheme.Colors.textSecondary)
+                    }
+                }
+
                 Section("Invite") {
                     Button("Invite a friend") { showReferral = true }
                     Text("You both get a free week of Premium when they start their 90 days.")
@@ -124,6 +143,14 @@ struct SettingsView: View {
             }
             .sheet(isPresented: $showPaywall) { PaywallView(trigger: .settings) }
             .sheet(isPresented: $showHowTo) { HowToUseView() }
+            .sheet(isPresented: $showStakeSetup) {
+                if let journey = activeJourneys.first { StakeSetupView(journey: journey) }
+            }
+            .sheet(isPresented: $showStakeDetail) {
+                if let challenge = activeStake {
+                    StakeDetailView(challenge: challenge, habits: activeJourneys.first?.habits ?? [])
+                }
+            }
             .sheet(item: $legalDocument) { LegalDocumentView(document: $0) }
             .sheet(isPresented: $showExportSheet) {
                 if let exportURL { ActivityShareSheet(items: [exportURL]) }
@@ -172,6 +199,8 @@ struct SettingsView: View {
             ? "There were no photos to delete."
             : "\(removed) photo\(removed == 1 ? "" : "s") deleted."
     }
+
+    private var activeStake: StakeChallenge? { stakes.first(where: \.isActive) }
 
     private func deleteAllData() {
         for user in users { modelContext.delete(user) }

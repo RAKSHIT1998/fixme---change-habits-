@@ -175,6 +175,36 @@ rejected — there are tests for each.
 The contact picker runs out of process, so the app needs **no Contacts permission** and
 never sees the address book — it only pre-fills an invite message.
 
+## Challenges — staking something on it
+
+**Profile › Settings › Start a challenge.** Pick an amount, name who collects if you fail,
+optionally name a referee from your friends, and agree to the terms. Then: every habit,
+every day, for 90 days. Miss one and it's over.
+
+The mechanic is old and well-evidenced — people finish far more often when failing costs
+them something they can name — and it only works because the rule is harsh and
+unambiguous. **Streak freezes and streak repair deliberately do not apply**, because they
+exist to protect a streak from a bad day, which is exactly the thing being staked.
+
+**The app never touches the money, and this is a hard constraint rather than a shortcut.**
+StoreKit cannot refund a purchase programmatically — Apple controls refunds — and holding
+stakes on a contingent outcome is a wager, which brings in gambling and money-transmission
+rules and needs a backend, licensing and legal review this app has none of. Beeminder and
+StickK take card payments on the web, outside the App Store, for exactly these reasons. So
+a stake here is a pledge with a witness: the app records what you promised and who is
+holding you to it, and settling up happens between the two of you.
+
+`StakeRules` is a pure function of state and is tested harder than anything else in the
+app, including the ways it must *not* fail someone: today is never judged, habits added
+later don't retroactively fail earlier days, a day with no habits can't be failed, and quit
+habits count as kept unless a relapse is logged.
+
+Reminders escalate and **replace** the generic daily nudges rather than stacking on them —
+five notifications a day is how an app gets its notifications switched off, and a challenge
+nobody is reminded about is one that quietly fails. iOS caps an app at 64 pending local
+notifications, so `StakeNotifications` keeps a rolling five-day window and refreshes it on
+every launch; a repeating trigger would fit in one slot but couldn't say "Day 34 of 90".
+
 ## Progress Reel
 
 **Journey › the film icon** builds a vertical video out of the user's own daily photos and

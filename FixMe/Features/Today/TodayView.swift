@@ -22,6 +22,9 @@ struct TodayView: View {
     @State private var showReel = false
     /// Day number and score from the review just finished, read once the sheet is gone.
     @State private var completedDay: (day: Int, score: Int)?
+    @State private var showStakeSetup = false
+    @State private var showStakeDetail = false
+    @Query(sort: \StakeChallenge.startDate, order: .reverse) private var challenges: [StakeChallenge]
     /// Which day number the milestone reel prompt was last offered for, so it appears
     /// once per milestone rather than every launch.
     @AppStorage("reelPromptedDay") private var reelPromptedDay = 0
@@ -57,6 +60,7 @@ struct TodayView: View {
                 await services.subscriptions.loadProducts()
                 await services.healthKit.refreshTodayMetrics()
                 syncHealthKit(journey: journey)
+                refreshStake()
                 scheduleSmartReminders()
                 // Without this the widget has nothing to show until the first habit is
                 // completed, which is what made a Day 1 journey render as Day 17.
@@ -85,6 +89,14 @@ struct TodayView: View {
             }
             .sheet(isPresented: $showReel) {
                 if let journey { ProgressReelView(journey: journey, user: user) }
+            }
+            .sheet(isPresented: $showStakeSetup) {
+                if let journey { StakeSetupView(journey: journey) }
+            }
+            .sheet(isPresented: $showStakeDetail) {
+                if let challenge = activeStake ?? challenges.first {
+                    StakeDetailView(challenge: challenge, habits: journey?.habits ?? [])
+                }
             }
             // Asked after the sheet is gone, not over the top of the recap: the rating
             // prompt should land on a finished, satisfying moment rather than interrupt
@@ -121,6 +133,16 @@ struct TodayView: View {
 
         VStack(spacing: FMTheme.Spacing.lg) {
             DayHeaderView(journey: journey, completionFraction: fraction, userName: user?.name)
+
+            if let challenge = activeStake {
+                // Above the streak cards deliberately: it is the only thing on this screen
+                // that can cost the user something real today.
+                StakeCard(
+                    challenge: challenge,
+                    status: StakeRules.status(for: challenge, habits: habits)
+                ) { showStakeDetail = true }
+                .padding(.horizontal, FMTheme.Spacing.md)
+            }
 
             if !habits.isEmpty {
                 // The two highest-intent moments in the whole app: a streak about to
@@ -264,6 +286,23 @@ struct TodayView: View {
         return StreakFreezeService.remainingFreezes(for: user, gate: services.premium)
     }
 
+    private var activeStake: StakeChallenge? { challenges.first(where: \.isActive) }
+
+    /// Re-checks the challenge and records the moment it ends. Called on appear and after
+    /// every habit change, because "you missed yesterday" has to be told at the first
+    /// opportunity rather than whenever the user next happens to open this screen.
+    private func refreshStake() {
+        guard let challenge = activeStake, let journey else { return }
+        StakeService(modelContext: modelContext).refresh(challenge, habits: journey.habits)
+    }
+
+    /// Called after any habit change. Finishing the last open habit is exactly what should
+    /// stand tonight's "you'll lose it" warning down, and leaving it scheduled after the
+    /// day is safe is the fastest way to teach someone to ignore these.
+    private func stakeDidChange() {
+        refreshStake()
+    }
+
     /// iOS only honours three rating prompts a year, so this asks on a good day or not
     /// at all — see `ReviewPrompt` for the rules.
     private func askForReviewIfEarned() {
@@ -308,7 +347,8 @@ struct TodayView: View {
         guard let journey else { return }
         SmartNotificationEngine.scheduleBehavioralReminders(
             journey: journey,
-            notifications: services.notifications
+            notifications: services.notifications,
+            stakeIsActive: activeStake != nil
         )
     }
 
