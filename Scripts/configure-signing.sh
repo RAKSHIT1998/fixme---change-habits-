@@ -51,8 +51,6 @@ if [[ "$PROFILE" == "full" ]]; then
   write_entitlements FixMe/Resources/FixMe.entitlements \
 "	<key>com.apple.developer.healthkit</key>
 	<true/>
-	<key>com.apple.developer.healthkit.access</key>
-	<array/>
 	<key>com.apple.security.application-groups</key>
 	<array>
 		<string>\$(FIXME_APP_GROUP)</string>

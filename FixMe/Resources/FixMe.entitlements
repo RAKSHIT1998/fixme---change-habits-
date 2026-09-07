@@ -2,13 +2,17 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<!-- Read-only access to steps, workouts, exercise and sleep, so habits can complete
+	     themselves. Deliberately NOT requesting two neighbouring entitlements:
+
+	     - health-records grants clinical data (lab results, medications, immunizations
+	       from healthcare providers). This app reads none of it — there is no
+	       HKClinicalType anywhere — and it is a sensitive entitlement App Review
+	       scrutinises specifically. Asking for it without a clinical use case invites a
+	       rejection and buys nothing.
+	     - healthkit.background-delivery needs HKObserverQuery to mean anything, and the
+	       app reads on demand instead. -->
 	<key>com.apple.developer.healthkit</key>
-	<true/>
-	<key>com.apple.developer.healthkit.access</key>
-	<array>
-		<string>health-records</string>
-	</array>
-	<key>com.apple.developer.healthkit.background-delivery</key>
 	<true/>
 	<key>com.apple.security.application-groups</key>
 	<array>
