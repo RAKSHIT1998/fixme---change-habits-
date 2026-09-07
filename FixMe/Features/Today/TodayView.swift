@@ -1,9 +1,11 @@
 import SwiftUI
 import SwiftData
+import StoreKit
 
 struct TodayView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.services) private var services
+    @Environment(\.requestReview) private var requestReview
     @Query(filter: #Predicate<Journey> { $0.isActive }, sort: \Journey.startDate, order: .reverse)
     private var activeJourneys: [Journey]
     @Query private var users: [User]
@@ -18,6 +20,8 @@ struct TodayView: View {
     @State private var paywallTrigger: PaywallTrigger?
     @State private var dismissedComeback = false
     @State private var showReel = false
+    /// Day number and score from the review just finished, read once the sheet is gone.
+    @State private var completedDay: (day: Int, score: Int)?
     /// Which day number the milestone reel prompt was last offered for, so it appears
     /// once per milestone rather than every launch.
     @AppStorage("reelPromptedDay") private var reelPromptedDay = 0
@@ -82,9 +86,14 @@ struct TodayView: View {
             .sheet(isPresented: $showReel) {
                 if let journey { ProgressReelView(journey: journey, user: user) }
             }
-            .sheet(isPresented: $showNightReview) {
+            // Asked after the sheet is gone, not over the top of the recap: the rating
+            // prompt should land on a finished, satisfying moment rather than interrupt
+            // the celebration it's reacting to.
+            .sheet(isPresented: $showNightReview, onDismiss: askForReviewIfEarned) {
                 if let journey {
-                    NightReviewView(journey: journey)
+                    NightReviewView(journey: journey) { day, score in
+                        completedDay = (day, score)
+                    }
                 }
             }
             .sheet(item: $paywallTrigger) { trigger in
@@ -253,6 +262,21 @@ struct TodayView: View {
     private var freezesRemaining: Int {
         guard let user else { return 0 }
         return StreakFreezeService.remainingFreezes(for: user, gate: services.premium)
+    }
+
+    /// iOS only honours three rating prompts a year, so this asks on a good day or not
+    /// at all — see `ReviewPrompt` for the rules.
+    private func askForReviewIfEarned() {
+        guard let completedDay else { return }
+        self.completedDay = nil
+
+        let prompt = ReviewPrompt()
+        let version = ReviewPrompt.currentAppVersion
+        guard prompt.shouldAsk(dayNumber: completedDay.day, dailyScore: completedDay.score, appVersion: version)
+        else { return }
+
+        prompt.recordAsk(appVersion: version)
+        requestReview()
     }
 
     private func showComebackCard(habits: [Habit]) -> Bool {

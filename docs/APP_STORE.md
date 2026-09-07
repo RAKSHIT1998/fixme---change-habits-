@@ -14,12 +14,22 @@ The pages are generated into `docs/` and served by GitHub Pages from this repo.
 | **Privacy Policy URL** (required) | `https://rakshit1998.github.io/fixme---change-habits-/privacy.html` |
 | **Support URL** (required) | `https://rakshit1998.github.io/fixme---change-habits-/support.html` |
 | **Marketing URL** (optional) | `https://rakshit1998.github.io/fixme---change-habits-/` |
+| *(not an App Store field)* | `…/i.html` — where every invite and shared-progress link lands. Opens the app if installed, shows the App Store if not. |
 | **EULA** | Leave blank — Apple's standard EULA applies. Our Terms of Use page is the in-app copy and does not replace it. |
 
 **Turn Pages on once:** repo → Settings → Pages → Source: *Deploy from a branch* →
 branch `main`, folder `/docs` → Save. First build takes a minute or two.
 Then open all four URLs and confirm they load before you submit — a dead Privacy or
 Support URL is an instant rejection.
+
+⚠️ **Set `APP_STORE_ID` once the app is approved.** Until then `i.html` sends people to
+Apple's generic App Store page instead of your listing, which wastes every invite a
+non-user taps. Take the Apple ID from App Store Connect → App Information, put it in
+`Scripts/generate-legal-html.py`, re-run the generator and push:
+
+```bash
+python3 Scripts/generate-legal-html.py     # after setting APP_STORE_ID
+```
 
 ⚠️ Using a custom domain instead? Run
 `python3 Scripts/generate-legal-html.py --domain yourdomain.com`, push, then set the same
@@ -251,10 +261,27 @@ none, and a screenshot that implies otherwise is a rejection risk.
 - [ ] Regenerate the site after any edit to `LegalDocuments.swift` so the hosted text and the
       in-app text match — review compares them: `python3 Scripts/generate-legal-html.py`
 - [ ] `xcodebuild ... test` passes.
+- [ ] `APP_STORE_ID` is set in `Scripts/generate-legal-html.py` and `docs/i.html`
+      regenerated — see §1. Tap an invite link on a device without the app to confirm it
+      lands on your listing.
 
 ---
 
-## 10. Things Apple rejects apps like this for
+## 10. Two things review may ask about
+
+**"You both get a free week" — where does that come from?** Pairing with a friend grants
+each device a week of Premium locally (`ReferralCredit`), capped at 28 days lifetime and
+once per friend. It is not a purchase, involves no server, and unlocks the same features a
+subscription does. Nothing is collected about either person.
+
+**The rating prompt.** `ReviewPrompt` uses the standard `requestReview` action and only
+fires after a completed day scoring 80+, or on a milestone day, no earlier than day 7 and
+at most once per version. It never appears during onboarding, after a missed day, or
+anywhere near the paywall.
+
+---
+
+## 11. Things Apple rejects apps like this for
 
 - **Dead Support URL.** The single most common one. Check it in a private window.
 - **Hosted policy that doesn't match the in-app policy.** Handled by the generator — keep

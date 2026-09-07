@@ -71,6 +71,15 @@ Retention *is* the revenue model: LTV is roughly ARPU × months retained.
   tells the two apart. If exports are healthy but installs aren't moving, the end card is
   the thing to A/B — it is the only frame that asks for anything.
 
+- **Ratings** (`ReviewPrompt`) — not a share loop, but the largest organic channel a habit
+  app has: ratings feed App Store ranking, which feeds installs. iOS honours three prompts
+  a year and silently drops the rest, so the policy asks only after a completed day scoring
+  80+ or a milestone, never before day 7, and once per version. Asking on the day someone
+  broke a streak is how an app collects one-star reviews.
+- **Earned Premium** (`ReferralCredit`) — a week per friend paired, 28 days lifetime. Makes
+  the invite screen's promise real, and gives non-payers a taste of the paid tier at the
+  moment they've just done the thing we want more of.
+
 ## Funnel instrumentation
 
 `AnalyticsEvent` already emits the events that tell you whether this works. Wire

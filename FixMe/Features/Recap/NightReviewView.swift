@@ -6,6 +6,10 @@ import PhotosUI
 /// then lock in the day. Never frames a missed habit as a failure.
 struct NightReviewView: View {
     let journey: Journey
+    /// Reports the day number and score once the day is locked in, so the presenter can
+    /// decide whether the moment is worth a rating prompt. Fired on completion only —
+    /// closing the sheet without finishing reports nothing.
+    var onDayCompleted: ((Int, Int) -> Void)?
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
 
@@ -115,6 +119,7 @@ struct NightReviewView: View {
         modelContext.insert(progress)
         try? modelContext.save()
         Haptics.notify(.success)
+        onDayCompleted?(dayNumber, dailyScore)
         showRecap = true
     }
 }
