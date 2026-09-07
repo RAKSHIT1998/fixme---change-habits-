@@ -272,9 +272,9 @@ none, and a screenshot that implies otherwise is a rejection risk.
 - [ ] `xcodebuild ... test` passes.
 - [x] `APP_STORE_ID` set to 6809448798 and `docs/i.html` regenerated. Still worth tapping
       an invite link on a device without the app once the listing is live.
-- [ ] **Build with Xcode 26 or later.** App Store Connect rejects anything built against an
-      SDK older than iOS 26 — the upload fails validation with a 409 before review ever
-      sees it. That needs macOS 15+ on the build machine.
+- [ ] **Build somewhere with Xcode 26.** App Store Connect rejects anything built against
+      an SDK older than iOS 26 — validation fails with a 409 before review sees it. The
+      project's own Mac cannot do this at all (see below), so use the CI workflow.
 
 ---
 
@@ -299,7 +299,38 @@ anywhere near the paywall.
 
 ---
 
-## 11. Things Apple rejects apps like this for
+## 11. Where builds come from
+
+**The development Mac cannot produce an App Store build, and never will.** It is a 2019
+Intel MacBook Air (MacBookAir8,2), which macOS Sequoia dropped support for — so it is
+stuck on Sonoma 14. Xcode 26, which carries the required iOS 26 SDK, needs both a newer
+macOS and Apple Silicon. There is no upgrade path on that hardware, and only ~15 GB free
+against Xcode's ~40 GB anyway. Everything else in this repo works there; distribution
+doesn't.
+
+So releases are built on GitHub's macOS runners, which are Apple Silicon with current
+Xcode: **Actions → "Upload to App Store Connect" → Run workflow**
+(`.github/workflows/release.yml`). It selects the newest Xcode and fails immediately if it
+is older than 26, imports signing into a throwaway keychain, archives, exports, validates,
+then uploads. Build numbers come from the run number, because a build number can never be
+reused.
+
+**One-time setup — five repository secrets** (Settings → Secrets and variables → Actions):
+
+| Secret | Where it comes from |
+|---|---|
+| `ASC_KEY_ID` | App Store Connect → Users and Access → Integrations (e.g. `RD4DGF9Y57`) |
+| `ASC_ISSUER_ID` | Same page, the UUID above the key list |
+| `ASC_KEY_P8_BASE64` | `base64 -i AuthKey_XXXX.p8 \| pbcopy` |
+| `DIST_CERT_P12_BASE64` | Keychain Access → "Apple Distribution: Rakshit Bargotra" → export as .p12 **with its private key**, then `base64 -i dist.p12 \| pbcopy` |
+| `DIST_CERT_PASSWORD` | The password you set on that .p12 export |
+
+The alternative is any Apple Silicon Mac running Xcode 26 — then `xcodebuild archive` and
+Transporter work directly, and this workflow is unnecessary.
+
+---
+
+## 12. Things Apple rejects apps like this for
 
 - **Dead Support URL.** The single most common one. Check it in a private window.
 - **Hosted policy that doesn't match the in-app policy.** Handled by the generator — keep
