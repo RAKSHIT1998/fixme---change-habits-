@@ -1,0 +1,83 @@
+# Codemagic build + upload. A third route to App Store Connect, alongside Xcode Cloud
+# (ci_scripts/ci_post_clone.sh) and GitHub Actions (.github/workflows/release.yml).
+#
+# It exists because the other two each depend on something outside the code: Xcode Cloud on
+# Apple's onboarding flow, GitHub Actions on an unlocked billing account. This one needs
+# only a browser and the App Store Connect API key already in use elsewhere — the build
+# runs on Codemagic's Apple Silicon machines, so it satisfies Apple's iOS 26 SDK rule that
+# a 2019 Intel Mac cannot.
+#
+# Setup (codemagic.io, free tier):
+#   1. Sign up, connect this GitHub repository.
+#   2. Teams -> Integrations -> App Store Connect: add the key
+#      RD4DGF9Y57 / issuer 6f3b9fe1-e2ff-42e4-9d77-04e29bcc428a, upload the .p8,
+#      and name the integration "fixme-asc" to match app_store_connect below.
+#   3. Start the ios-release workflow.
+#
+# Signing is fetched from App Store Connect at build time, so no .p12 or password is
+# involved — one less secret than the GitHub route needs.
+workflows:
+  ios-release:
+    name: Fix Me — archive and upload
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+    integrations:
+      app_store_connect: fixme-asc
+    environment:
+      vars:
+        BUNDLE_ID: "com.rakshitbargotra.fixme"
+        XCODE_SCHEME: "FixMe"
+      # Apple rejects anything built against an SDK older than iOS 26.
+      xcode: latest
+      cocoapods: default
+    scripts:
+      - name: Install XcodeGen
+        script: brew install xcodegen
+
+      # FixMe.xcodeproj is generated from project.yml and not committed, so it has to be
+      # built before anything can reference the scheme.
+      - name: Generate the Xcode project
+        script: xcodegen generate
+
+      - name: Fail early if the toolchain is too old
+        script: |
+          set -e
+          xcodebuild -version
+          MAJOR=$(xcodebuild -version | head -1 | awk '{print $2}' | cut -d. -f1)
+          if [ "$MAJOR" -lt 26 ]; then
+            echo "Xcode $MAJOR is too old — App Store Connect requires the iOS 26 SDK." >&2
+            exit 1
+          fi
+
+      - name: Fetch signing files
+        script: |
+          app-store-connect fetch-signing-files "$BUNDLE_ID" \
+            --type IOS_APP_STORE --create
+          keychain initialize
+          keychain add-certificates
+          xcode-project use-profiles
+
+      - name: Build number
+        script: |
+          # Build numbers can never be reused, so take the next one App Store Connect
+          # hasn't seen rather than anything stored in the repo.
+          NEXT=$(($(app-store-connect get-latest-app-store-build-number "$BUNDLE_ID" || echo 0) + 1))
+          echo "Using build number $NEXT"
+          agvtool new-version -all "$NEXT"
+
+      - name: Archive
+        script: |
+          xcode-project build-ipa \
+            --project "FixMe.xcodeproj" \
+            --scheme "$XCODE_SCHEME" \
+            --config Release
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+    publishing:
+      app_store_connect:
+        auth: integration
+        # Uploads to TestFlight internal testers only. Promoting to review stays a
+        # deliberate action in App Store Connect rather than something CI does.
+        submit_to_testflight: true
+        submit_to_app_store: false

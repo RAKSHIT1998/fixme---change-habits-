@@ -318,8 +318,9 @@ macOS and Apple Silicon. There is no upgrade path on that hardware, and only ~15
 against Xcode's ~40 GB anyway. Everything else in this repo works there; distribution
 doesn't.
 
-There are two ways to build elsewhere. **Xcode Cloud is the one to try first** — it needs
-no certificates, no API keys and no GitHub billing.
+Three ways to build elsewhere, in the order worth trying. Note that being on an Intel Mac
+does not rule out any of them: all three build on someone else's Apple Silicon hardware,
+and this machine only ever configures them.
 
 ### Option A — Xcode Cloud (recommended)
 
@@ -338,7 +339,16 @@ below are needed.
 clones the repo and finds nothing to build. It installs XcodeGen and runs `xcodegen
 generate` before the build starts.
 
-### Option B — GitHub Actions
+### Option B — Codemagic (`codemagic.yaml`)
+
+Needs neither this Mac nor GitHub billing: sign up at codemagic.io on the free tier,
+connect the repo, add the App Store Connect key (`RD4DGF9Y57`, issuer
+`6f3b9fe1-e2ff-42e4-9d77-04e29bcc428a`, plus the `.p8`) as a team integration named
+`fixme-asc`, and run the `ios-release` workflow. Builds run on Apple Silicon with current
+Xcode, signing is fetched from App Store Connect at build time — so no `.p12` or password
+— and the result goes to TestFlight. Promoting to review stays a manual decision.
+
+### Option C — GitHub Actions
 
 Blocked at the time of writing: the account is billing-locked, so jobs refuse to start
 ("The job was not started because your account is locked due to a billing issue"), which
