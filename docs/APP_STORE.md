@@ -238,16 +238,26 @@ IAP fields:
 Required: **6.9" iPhone** (1320 × 2868 or 1290 × 2796), up to 10 shots. iPad is not needed —
 the app is `TARGETED_DEVICE_FAMILY = 1` (iPhone only). No iPad build, no iPad screenshots.
 
-Fastest way to capture a good set:
+There's a harness for this — it drives the real app on a simulator and captures at
+native resolution, so the sizes are always exactly right:
 
 ```bash
-# Debug builds only — seeds a populated Day 17 journey, skipping onboarding
-# Xcode: Product > Scheme > Edit Scheme > Run > Arguments > add -FixMeSeedDemo
+xcodebuild -project FixMe.xcodeproj -scheme FixMeScreenshots \
+  -destination 'platform=iOS Simulator,name=iPhone 16 Pro Max' test
 ```
 
-Then on an iPhone 16 Pro Max simulator, ⌘S in the Simulator saves a correctly-sized PNG.
-Suggested order: Today (mid-journey), a quit tracker, PROVE IT camera, the day recap /
-score, Journey stats, the paywall.
+PNGs land in `/private/tmp/fixme-screenshots` (override with `FIXME_SCREENSHOT_DIR`). It
+launches with `-FixMeSeedDemo`, so every shot shows a populated day-17 journey rather than
+an empty first launch, and it captures Today, Journey, Explore, Social and Profile.
+
+**Run it on an iPhone 16 Pro Max.** That device is natively 1320x2868, which is the 6.9"
+size Apple wants; the test asserts the dimensions and fails on any other simulator. It also
+fails if a capture comes back blank — an earlier version rendered the screens headlessly
+with `ImageRenderer` and produced six identical grey placeholders that passed a
+size-only check, which is exactly the failure worth catching.
+
+Add anything the automated set doesn't cover (the paywall, a quit tracker, the reel) by
+hand, or extend `FixMeUITests/AppStoreScreenshots.swift`.
 
 Do **not** show a fake community feed or any content implying other users — the app has
 none, and a screenshot that implies otherwise is a rejection risk.
