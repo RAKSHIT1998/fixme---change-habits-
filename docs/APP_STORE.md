@@ -322,6 +322,28 @@ Three ways to build elsewhere, in the order worth trying. Note that being on an 
 does not rule out any of them: all three build on someone else's Apple Silicon hardware,
 and this machine only ever configures them.
 
+### Option Z — straight from Xcode, on a Mac that can run Xcode 26
+
+Nothing in this project needs changing for this. It archives and exports a correctly
+signed App Store IPA today — that has been verified end to end here; the upload was
+rejected only for the SDK stamp, which is a property of the compiler, not the code.
+
+On any Mac running Xcode 26 (Apple Silicon):
+
+```bash
+git clone https://github.com/RAKSHIT1998/fixme---change-habits-.git
+cd fixme---change-habits-
+brew install xcodegen && xcodegen generate    # the .xcodeproj is generated, not committed
+open FixMe.xcodeproj
+```
+
+Then: select **Any iOS Device** as the destination → **Product → Archive** → **Distribute
+App → App Store Connect → Upload**. Signing is automatic and the team is already set to
+48TGY734WW in `Signing.xcconfig`, so it should need no further configuration.
+
+Bump `CURRENT_PROJECT_VERSION` in `project.yml` before each upload — build numbers cannot
+be reused — and re-run `xcodegen generate`.
+
 ### Option A — Xcode Cloud (recommended)
 
 Apple's own CI. It is included with the Developer Program (25 compute hours/month free),
