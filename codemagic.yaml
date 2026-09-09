@@ -66,9 +66,24 @@ workflows:
             exit 1
           fi
           mkdir -p "$CM_BUILD_DIR/private_keys"
-          printf '%s' "$APP_STORE_CONNECT_PRIVATE_KEY" \
-            > "$CM_BUILD_DIR/private_keys/AuthKey_${APP_STORE_CONNECT_KEY_IDENTIFIER}.p8"
-          chmod 600 "$CM_BUILD_DIR/private_keys/"*.p8
+          KEY="$CM_BUILD_DIR/private_keys/AuthKey_${APP_STORE_CONNECT_KEY_IDENTIFIER}.p8"
+
+          # %b rather than %s, and an explicit trailing newline. Both matter: the stored
+          # value may carry literal \n escapes rather than real line breaks, and a PEM
+          # whose final line has no newline is rejected outright — xcodebuild reports it
+          # as "Invalid authentication key credential (invalidPEMDocument)", which says
+          # nothing about the formatting being the cause.
+          printf '%b\n' "$APP_STORE_CONNECT_PRIVATE_KEY" > "$KEY"
+          chmod 600 "$KEY"
+
+          # Verify before handing it to xcodebuild, so a malformed key fails here with a
+          # message that names the problem instead of ten steps later.
+          if ! openssl pkey -in "$KEY" -noout >/dev/null 2>&1; then
+            echo "error: the App Store Connect key did not write as a valid PEM." >&2
+            echo "first line was: $(head -1 "$KEY")" >&2
+            exit 1
+          fi
+          echo "App Store Connect key written and validated"
 
       - name: Set the build number
         script: |
