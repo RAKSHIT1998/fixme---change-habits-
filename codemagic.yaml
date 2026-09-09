@@ -30,6 +30,10 @@ workflows:
     environment:
       vars:
         BUNDLE_ID: "com.rakshitbargotra.fixme"
+        # Numeric App Store Connect id. The build-number lookup takes this, not the
+        # bundle id — passing the bundle id fails and silently falls back to 0, which
+        # then collides with an existing build.
+        APP_STORE_APP_ID: "6809448798"
         XCODE_SCHEME: "FixMe"
         XCODE_PROJECT: "FixMe.xcodeproj"
       xcode: latest
@@ -71,10 +75,20 @@ workflows:
           set -e
           # Build numbers can never be reused, so take the next one App Store Connect
           # hasn't seen rather than anything stored in the repo.
-          LATEST=$(app-store-connect get-latest-app-store-build-number "$BUNDLE_ID" 2>/dev/null || echo 0)
+          LATEST=$(app-store-connect get-latest-build-number "$APP_STORE_APP_ID" 2>/dev/null || echo 0)
           NEXT=$((LATEST + 1))
           echo "Latest on App Store Connect: $LATEST — using $NEXT"
           echo "BUILD_NUMBER=$NEXT" >> "$CM_ENV"
+
+      # xcodebuild's automatic signing creates a certificate and stores its private key in
+      # the default keychain. A fresh runner has none unlocked, so make one first.
+      #
+      # If this build ever fails with "maximum number of certificates generated", that is
+      # Apple's cap on distribution certificates rather than anything here: revoke an
+      # unused one in the Developer portal (Certificates, Identifiers & Profiles) and
+      # re-run. Two already exist on this account, expiring Dec 2026 and Sep 2027.
+      - name: Prepare the keychain
+        script: keychain initialize
 
       - name: Archive
         script: |
@@ -107,18 +121,18 @@ workflows:
           </dict>
           </plist>
           PLIST
-          mkdir -p "$CM_BUILD_DIR/export"
+          mkdir -p "$CM_BUILD_DIR/build/ios/ipa"
           xcodebuild -exportArchive \
             -archivePath "$CM_BUILD_DIR/FixMe.xcarchive" \
-            -exportPath "$CM_BUILD_DIR/export" \
+            -exportPath "$CM_BUILD_DIR/build/ios/ipa" \
             -exportOptionsPlist "$CM_BUILD_DIR/ExportOptions.plist" \
             -allowProvisioningUpdates \
             -authenticationKeyPath "$CM_BUILD_DIR/private_keys/AuthKey_${APP_STORE_CONNECT_KEY_IDENTIFIER}.p8" \
             -authenticationKeyID "$APP_STORE_CONNECT_KEY_IDENTIFIER" \
             -authenticationKeyIssuerID "$APP_STORE_CONNECT_ISSUER_ID"
-          ls -la "$CM_BUILD_DIR/export"
+          ls -la "$CM_BUILD_DIR/build/ios/ipa"
     artifacts:
-      - $CM_BUILD_DIR/export/*.ipa
+      - build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
     publishing:
       app_store_connect:
