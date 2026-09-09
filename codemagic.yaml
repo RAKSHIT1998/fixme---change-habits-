@@ -56,34 +56,48 @@ workflows:
             exit 1
           fi
 
-      - name: Write the App Store Connect key
+      # The integration exposes the key as one of three shapes: a reference to a file it
+      # already wrote ("@file:/path"), a reference to another variable ("@env:NAME"), or
+      # the PEM itself. The first is what Codemagic actually does, and writing that
+      # reference string into a file — as this step used to — produces a .p8 containing
+      # the literal text "@file:/Users/builder/...", which xcodebuild rejects as an
+      # invalid PEM without hinting why.
+      - name: Locate the App Store Connect key
         script: |
           set -e
-          # Provided by the "fixme-asc" integration above.
-          if [ -z "$APP_STORE_CONNECT_PRIVATE_KEY" ]; then
+          RAW="$APP_STORE_CONNECT_PRIVATE_KEY"
+          if [ -z "$RAW" ]; then
             echo "No App Store Connect integration attached." >&2
             echo "Teams -> Integrations -> App Store Connect, named 'fixme-asc'." >&2
             exit 1
           fi
-          mkdir -p "$CM_BUILD_DIR/private_keys"
-          KEY="$CM_BUILD_DIR/private_keys/AuthKey_${APP_STORE_CONNECT_KEY_IDENTIFIER}.p8"
 
-          # %b rather than %s, and an explicit trailing newline. Both matter: the stored
-          # value may carry literal \n escapes rather than real line breaks, and a PEM
-          # whose final line has no newline is rejected outright — xcodebuild reports it
-          # as "Invalid authentication key credential (invalidPEMDocument)", which says
-          # nothing about the formatting being the cause.
-          printf '%b\n' "$APP_STORE_CONNECT_PRIVATE_KEY" > "$KEY"
-          chmod 600 "$KEY"
+          case "$RAW" in
+            @file:*)
+              KEY="${RAW#@file:}"
+              ;;
+            @env:*)
+              KEY="$CM_BUILD_DIR/private_keys/AuthKey_${APP_STORE_CONNECT_KEY_IDENTIFIER}.p8"
+              mkdir -p "$(dirname "$KEY")"
+              eval "printf '%b\\n' \"\$${RAW#@env:}\"" > "$KEY"
+              ;;
+            *)
+              KEY="$CM_BUILD_DIR/private_keys/AuthKey_${APP_STORE_CONNECT_KEY_IDENTIFIER}.p8"
+              mkdir -p "$(dirname "$KEY")"
+              # %b and the trailing newline both matter: the value may carry literal \n
+              # escapes, and a PEM whose last line has no newline is rejected outright.
+              printf '%b\n' "$RAW" > "$KEY"
+              ;;
+          esac
 
-          # Verify before handing it to xcodebuild, so a malformed key fails here with a
-          # message that names the problem instead of ten steps later.
+          chmod 600 "$KEY" 2>/dev/null || true
           if ! openssl pkey -in "$KEY" -noout >/dev/null 2>&1; then
-            echo "error: the App Store Connect key did not write as a valid PEM." >&2
+            echo "error: $KEY is not a valid private key." >&2
             echo "first line was: $(head -1 "$KEY")" >&2
             exit 1
           fi
-          echo "App Store Connect key written and validated"
+          echo "Using App Store Connect key at $KEY"
+          echo "ASC_KEY_PATH=$KEY" >> "$CM_ENV"
 
       - name: Set the build number
         script: |
@@ -115,7 +129,7 @@ workflows:
             -destination 'generic/platform=iOS' \
             -archivePath "$CM_BUILD_DIR/FixMe.xcarchive" \
             -allowProvisioningUpdates \
-            -authenticationKeyPath "$CM_BUILD_DIR/private_keys/AuthKey_${APP_STORE_CONNECT_KEY_IDENTIFIER}.p8" \
+            -authenticationKeyPath "$ASC_KEY_PATH" \
             -authenticationKeyID "$APP_STORE_CONNECT_KEY_IDENTIFIER" \
             -authenticationKeyIssuerID "$APP_STORE_CONNECT_ISSUER_ID" \
             CURRENT_PROJECT_VERSION="$BUILD_NUMBER"
@@ -142,7 +156,7 @@ workflows:
             -exportPath "$CM_BUILD_DIR/build/ios/ipa" \
             -exportOptionsPlist "$CM_BUILD_DIR/ExportOptions.plist" \
             -allowProvisioningUpdates \
-            -authenticationKeyPath "$CM_BUILD_DIR/private_keys/AuthKey_${APP_STORE_CONNECT_KEY_IDENTIFIER}.p8" \
+            -authenticationKeyPath "$ASC_KEY_PATH" \
             -authenticationKeyID "$APP_STORE_CONNECT_KEY_IDENTIFIER" \
             -authenticationKeyIssuerID "$APP_STORE_CONNECT_ISSUER_ID"
           ls -la "$CM_BUILD_DIR/build/ios/ipa"
