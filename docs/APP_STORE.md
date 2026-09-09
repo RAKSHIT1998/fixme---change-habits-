@@ -363,12 +363,18 @@ generate` before the build starts.
 
 ### Option B — Codemagic (`codemagic.yaml`)
 
-Needs neither this Mac nor GitHub billing: sign up at codemagic.io on the free tier,
+Needs neither this Mac nor GitHub billing. Sign up at codemagic.io on the free tier,
 connect the repo, add the App Store Connect key (`RD4DGF9Y57`, issuer
 `6f3b9fe1-e2ff-42e4-9d77-04e29bcc428a`, plus the `.p8`) as a team integration named
-`fixme-asc`, and run the `ios-release` workflow. Builds run on Apple Silicon with current
-Xcode, signing is fetched from App Store Connect at build time — so no `.p12` or password
-— and the result goes to TestFlight. Promoting to review stays a manual decision.
+`fixme-asc`, and run `ios-release`. That is the entire setup — no variables to paste.
+
+Signing is done by `xcodebuild -allowProvisioningUpdates` with that same key, the way the
+IDE does it when you hit Archive: Xcode generates the keypair on the runner and registers
+the certificate and profile itself. The earlier config used codemagic-cli-tools'
+`fetch-signing-files`, which cost three failed builds — it needs a certificate private key
+supplied by hand, because Apple's API creates certificates but never returns their private
+half, and a PEM pasted into a variable field loses its newlines. Nothing to transport now,
+so none of that can recur.
 
 ### Option C — GitHub Actions
 
