@@ -263,7 +263,10 @@ once per friend. It is not a purchase, involves no server, and unlocks the same 
 subscription does. Nothing is collected about either person.
 
 **Challenges and the "$50 stake".** The app records a pledge and never collects, holds,
-charges or refunds money. There is no payment flow, no IAP involved, and no third party
+charges or refunds money. This is stated in three places a reviewer will pass through: the
+offer card on Today (the first mention of money anywhere in the app), above the
+confirmation toggle on the setup screen, and again in the agreed terms on the challenge
+screen. None of it can be reached without seeing the disclaimer. There is no payment flow, no IAP involved, and no third party
 receives funds — `StakeChallenge` stores an amount the user typed and the name of whoever
 they told. Settling up happens entirely outside the app. This is stated on the setup screen
 above the confirmation toggle and again on the challenge screen, so a reviewer will see it

@@ -46,6 +46,14 @@ struct StakeOfferCard: View {
                     Text("Stake money on finishing your 90 days. Miss one day and it's gone — which is exactly why people finish.")
                         .font(FMTheme.Typography.footnote)
                         .foregroundStyle(FMTheme.Colors.textSecondary)
+
+                    // Stated here, not only on the setup screen. This card is the first
+                    // mention of money anywhere in the app, and App Review may well read
+                    // it without tapping through — "stake money... it's gone" on its own
+                    // reads like the app collects payment outside IAP, or runs a wager.
+                    Text("Fix Me never takes or holds the money. You settle it yourself.")
+                        .font(FMTheme.Typography.footnote)
+                        .foregroundStyle(FMTheme.Colors.textTertiary)
                 }
                 Spacer(minLength: 0)
             }
