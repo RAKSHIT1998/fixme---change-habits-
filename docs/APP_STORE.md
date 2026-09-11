@@ -162,78 +162,43 @@ Paste into "Notes" on the version page:
 
 ## 7. Store metadata
 
-**Name (30):** `Fix Me: 90-Day Habits` — already registered under this name.
+**All of this is already live on the listing** — set via the API, not by hand. What follows
+records what was set and why, so a later edit doesn't undo the reasoning.
 
-**Subtitle (30):** `Build habits. Quit the rest.`
+**Positioning: quitting, not habits.** "Habit tracker" is among the most saturated searches
+on the App Store and a cold listing cannot rank for it. "Quit nicotine / alcohol" reaches
+someone with an urgent problem, who converts better and pays more. Habits are still in the
+app and still in the description — they are just not what the listing leads with.
 
-**Promotional text (170):**
-> 90 days. Real habits, real proof. Track what you're building and what you're quitting —
-> with everything stored on your iPhone, no account, no server, no tracking.
+**Apple does not index the description.** Only the name, subtitle and keyword field are
+searched, so those three carry every term, with no word repeated between them, and the
+description does nothing but convert.
 
-**Keywords (100, comma-separated, no spaces):**
-`habit,tracker,streak,90,day,quit,smoking,sober,alcohol,routine,discipline,goal,challenge,morning`
+| Field | Value | Chars |
+|---|---|---|
+| Name | `Fix Me: Quit Tracker & Habits` | 29/30 |
+| Subtitle | `Stop smoking, drinking, vaping` | 30/30 |
+| Keywords | `sober,sobriety,alcohol,nicotine,addiction,craving,recovery,cigarette,clean,streak,90,day,relapse` | 96/100 |
 
-(100 characters is a hard limit — the earlier list was 102 and would have been rejected.)
+The keyword limit is a hard 100 and is rejected on entry — an earlier list here was 102.
 
-**Description:**
-> **90 days. Better habits. Better you.**
->
-> Fix Me is a 90-day habit tracker built on one idea: showing up is the whole game. Pick the
-> habits you're building, name the things you're quitting, and run the full 90 days.
->
-> **BUILD**
-> Pick your habits and tick them off each day. Water-style habits get a quick logger. Step
-> and workout habits fill themselves in from Apple Health. Streaks, XP and badges track the
-> run you're putting together.
->
-> **PROVE IT**
-> Some habits ask for a photo. It's analysed right on your iPhone with Apple's Vision
-> framework — the image never leaves your device and no server ever sees it.
->
-> **QUIT**
-> Quitting gets its own tracker: clean time, money saved, units avoided, cravings resisted
-> and a recovery timeline. Feel an urge? Start the 5-minute urge-surfing timer and log the
-> win. Slip up? Only the current run resets — total clean time and your longest run survive,
-> because relapse is part of quitting, not the end of it. Quit tracking is never locked
-> behind a subscription.
->
-> **FINISH THE DAY**
-> An evening recap: review what you kept, journal it, add a photo, get your score, and post
-> it to your own progress wall.
->
-> **ALARMS THAT DO SOMETHING**
-> Reminders with repeat days and snooze, and a Done button right on the lock screen that
-> marks the habit complete.
->
-> **FRIENDS, WITHOUT AN ACCOUNT**
-> Pair with a friend phone-to-phone over Bluetooth or Wi-Fi, or send a signed invite link.
-> There's no account, no directory and no server in between — updates are signed by your
-> device and travel straight to theirs.
->
-> **YOUR DATA STAYS YOURS**
-> No sign-up. No server. No analytics or advertising SDKs. Habits, photos and journals live
-> on your iPhone. Export everything as JSON, or delete it all, any time.
->
-> Premium unlocks unlimited habits, unlimited verification, streak repair and every share
-> template. Quit tracking stays free for everyone.
->
-> Fix Me is not a medical device and does not give medical advice. If you drink heavily or
-> daily, stopping suddenly can be dangerous — talk to a doctor first.
+**Promotional text** (editable any time without a new version):
+> Quit smoking, vaping or drinking — and prove it. Clean time, money saved, cravings
+> beaten, and a 90-day plan that survives a slip-up.
 
-**What's New (1.0.0):** `First release. 90 days starts now.`
+**Description** leads with quitting, and puts relapse handling second on purpose: most quit
+apps reset everything after a slip, and this one keeps total clean time, longest run and
+attempt count. That is the real differentiator to someone on their fourth attempt. PROVE
+IT, the stake, the reel and shared starts follow as supporting features.
 
-⚠️ Auto-renewing subscription disclosure — Apple requires this in the description or the
-App Store's subscription metadata. Append it to the description if you don't put it in the
-IAP fields:
-> Premium is an auto-renewing subscription. Payment is charged to your Apple Account at
-> confirmation of purchase. It renews automatically unless cancelled at least 24 hours
-> before the end of the current period, and your account is charged within 24 hours of the
-> period ending. Manage or cancel in Settings › Apple Account › Subscriptions. Any unused
-> portion of a free trial is forfeited when a subscription is purchased.
-> Terms: https://rakshit1998.github.io/fixme---change-habits-/terms.html
-> Privacy: https://rakshit1998.github.io/fixme---change-habits-/privacy.html
+**Also set via the API:** copyright `2026 Rakshit Bargotra`, primary category **Health &
+Fitness** with secondary **Lifestyle** (deliberately not Medical — the app states it is not
+a medical device, and that category invites review scrutiny it would fail), the age-rating
+declaration, the App Review contact and notes, and the Privacy Policy URL.
 
----
+**Still web-only, because Apple exposes no API for them:** the App Privacy questionnaire
+(answer: "Do you collect data?" → **No**), subscription prices and the free trial, and the
+per-IAP review screenshots.
 
 ## 8. Screenshots ⚠️
 
