@@ -143,12 +143,19 @@ workflows:
           app-store-connect fetch-signing-files "$BUNDLE_ID" \
             --type IOS_APP_STORE --create --certificate-key "@file:$KEY"
           keychain add-certificates
-          # --warn-only because this walks every target in the project, and FixMeTests
-          # and FixMeUITests have no App Store profiles and never will. Without it one
-          # unmatched test bundle fails the whole step, which is what "Failed to set code
-          # signing settings" meant — the app and widget profiles were fetched fine.
-          xcode-project use-profiles --warn-only
+          # --warn-only because this walks every target, and FixMeTests and FixMeUITests
+          # have no App Store profiles and never will.
+          xcode-project use-profiles --warn-only || true
 
+      # The project signs automatically (CODE_SIGN_STYLE = Automatic), and the app and
+      # its widget need different profiles, which command-line build settings cannot
+      # express — they apply to every target at once. So let Xcode resolve signing, with
+      # the API key to authorise it.
+      #
+      # This is what failed on the second-ever build, but the cause was that automatic
+      # signing had created a certificate on a machine that no longer existed. The step
+      # above now guarantees a certificate whose private key is in this keychain, so
+      # there is something for Xcode to find rather than an offer to revoke.
       - name: Archive
         script: |
           set -e
@@ -158,6 +165,10 @@ workflows:
             -configuration Release \
             -destination 'generic/platform=iOS' \
             -archivePath "$CM_BUILD_DIR/FixMe.xcarchive" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$ASC_KEY_PATH" \
+            -authenticationKeyID "$APP_STORE_CONNECT_KEY_IDENTIFIER" \
+            -authenticationKeyIssuerID "$APP_STORE_CONNECT_ISSUER_ID" \
             CURRENT_PROJECT_VERSION="$BUILD_NUMBER"
 
       - name: Export the IPA
@@ -171,7 +182,7 @@ workflows:
             <key>method</key><string>app-store-connect</string>
             <key>teamID</key><string>48TGY734WW</string>
             <key>uploadSymbols</key><true/>
-            <key>signingStyle</key><string>manual</string>
+            <key>signingStyle</key><string>automatic</string>
             <key>destination</key><string>export</string>
           </dict>
           </plist>
@@ -180,7 +191,11 @@ workflows:
           xcodebuild -exportArchive \
             -archivePath "$CM_BUILD_DIR/FixMe.xcarchive" \
             -exportPath "$CM_BUILD_DIR/build/ios/ipa" \
-            -exportOptionsPlist "$CM_BUILD_DIR/ExportOptions.plist"
+            -exportOptionsPlist "$CM_BUILD_DIR/ExportOptions.plist" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$ASC_KEY_PATH" \
+            -authenticationKeyID "$APP_STORE_CONNECT_KEY_IDENTIFIER" \
+            -authenticationKeyIssuerID "$APP_STORE_CONNECT_ISSUER_ID"
           ls -la "$CM_BUILD_DIR/build/ios/ipa"
     artifacts:
       - build/ios/ipa/*.ipa
