@@ -28,6 +28,9 @@ workflows:
     integrations:
       app_store_connect: fixme-asc
     environment:
+      # Holds CERTIFICATE_PRIVATE_KEY_B64 — a stable RSA key, base64 on one line.
+      groups:
+        - appstore
       vars:
         BUNDLE_ID: "com.rakshitbargotra.fixme"
         # Numeric App Store Connect id. The build-number lookup takes this, not the
@@ -109,15 +112,41 @@ workflows:
           echo "Latest on App Store Connect: $LATEST — using $NEXT"
           echo "BUILD_NUMBER=$NEXT" >> "$CM_ENV"
 
-      # xcodebuild's automatic signing creates a certificate and stores its private key in
-      # the default keychain. A fresh runner has none unlocked, so make one first.
+      # Signing is explicit rather than automatic.
       #
-      # If this build ever fails with "maximum number of certificates generated", that is
-      # Apple's cap on distribution certificates rather than anything here: revoke an
-      # unused one in the Developer portal (Certificates, Identifiers & Profiles) and
-      # re-run. Two already exist on this account, expiring Dec 2026 and Sep 2027.
-      - name: Prepare the keychain
-        script: keychain initialize
+      # xcodebuild's automatic signing worked exactly once. It creates a certificate tied
+      # to the machine that asked for it, and every Codemagic runner is thrown away after
+      # the build — so the next run got "your account already has a signing certificate
+      # for this machine, but its private key is not installed", with an offer to revoke.
+      # That is not a workflow, it is a one-shot.
+      #
+      # Supplying a stable private key fixes it: the certificate is created once, reused
+      # on every later run, and nothing accumulates against Apple's certificate cap.
+      - name: Prepare signing
+        script: |
+          set -e
+          if [ -z "$CERTIFICATE_PRIVATE_KEY_B64" ]; then
+            echo "CERTIFICATE_PRIVATE_KEY_B64 is not set (group 'appstore')." >&2
+            exit 1
+          fi
+          KEY="$CM_BUILD_DIR/signing_key.pem"
+          echo "$CERTIFICATE_PRIVATE_KEY_B64" | base64 --decode > "$KEY"
+          chmod 600 "$KEY"
+          if ! openssl rsa -in "$KEY" -check -noout >/dev/null 2>&1; then
+            echo "error: CERTIFICATE_PRIVATE_KEY_B64 did not decode to an RSA key." >&2
+            exit 1
+          fi
+
+          keychain initialize
+          app-store-connect fetch-signing-files "$BUNDLE_ID" \
+            --type IOS_APP_STORE --create --certificate-key "@file:$KEY"
+          # The widget ships inside the app and needs its own App Store profile.
+          app-store-connect fetch-signing-files "${BUNDLE_ID}.widgets" \
+            --type IOS_APP_STORE --create --certificate-key "@file:$KEY"
+          keychain add-certificates
+          # Writes the fetched profiles into the project, so the archive below signs
+          # manually and does not reach out to Apple again.
+          xcode-project use-profiles
 
       - name: Archive
         script: |
@@ -128,10 +157,6 @@ workflows:
             -configuration Release \
             -destination 'generic/platform=iOS' \
             -archivePath "$CM_BUILD_DIR/FixMe.xcarchive" \
-            -allowProvisioningUpdates \
-            -authenticationKeyPath "$ASC_KEY_PATH" \
-            -authenticationKeyID "$APP_STORE_CONNECT_KEY_IDENTIFIER" \
-            -authenticationKeyIssuerID "$APP_STORE_CONNECT_ISSUER_ID" \
             CURRENT_PROJECT_VERSION="$BUILD_NUMBER"
 
       - name: Export the IPA
@@ -145,7 +170,7 @@ workflows:
             <key>method</key><string>app-store-connect</string>
             <key>teamID</key><string>48TGY734WW</string>
             <key>uploadSymbols</key><true/>
-            <key>signingStyle</key><string>automatic</string>
+            <key>signingStyle</key><string>manual</string>
             <key>destination</key><string>export</string>
           </dict>
           </plist>
@@ -154,11 +179,7 @@ workflows:
           xcodebuild -exportArchive \
             -archivePath "$CM_BUILD_DIR/FixMe.xcarchive" \
             -exportPath "$CM_BUILD_DIR/build/ios/ipa" \
-            -exportOptionsPlist "$CM_BUILD_DIR/ExportOptions.plist" \
-            -allowProvisioningUpdates \
-            -authenticationKeyPath "$ASC_KEY_PATH" \
-            -authenticationKeyID "$APP_STORE_CONNECT_KEY_IDENTIFIER" \
-            -authenticationKeyIssuerID "$APP_STORE_CONNECT_ISSUER_ID"
+            -exportOptionsPlist "$CM_BUILD_DIR/ExportOptions.plist"
           ls -la "$CM_BUILD_DIR/build/ios/ipa"
     artifacts:
       - build/ios/ipa/*.ipa
