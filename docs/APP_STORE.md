@@ -171,7 +171,9 @@ Paste into "Notes" on the version page:
 > with everything stored on your iPhone, no account, no server, no tracking.
 
 **Keywords (100, comma-separated, no spaces):**
-`habit,tracker,streak,90,day,quit,smoking,sober,alcohol,routine,discipline,goal,daily,challenge,morning`
+`habit,tracker,streak,90,day,quit,smoking,sober,alcohol,routine,discipline,goal,challenge,morning`
+
+(100 characters is a hard limit — the earlier list was 102 and would have been rejected.)
 
 **Description:**
 > **90 days. Better habits. Better you.**

@@ -43,6 +43,11 @@ final class AppStoreScreenshots: XCTestCase {
     /// placeholder images, so "it wrote a file of the right dimensions" is explicitly not
     /// enough to call this working.
     private func snap(_ name: String) throws {
+        // Capturing while a tab transition is still animating makes the render server
+        // miss the request — it surfaces as "Timed out while requesting screenshot" and
+        // kills the run. Letting the UI go quiet first is what actually fixes it; this
+        // machine is slow enough that it happens reliably otherwise.
+        settle()
         let screenshot = XCUIScreen.main.screenshot()
         let data = screenshot.pngRepresentation
         let url = Self.outputDirectory.appendingPathComponent("\(name).png")
@@ -61,13 +66,23 @@ final class AppStoreScreenshots: XCTestCase {
 
     private func tapTab(_ label: String) {
         let tab = app.tabBars.buttons[label]
-        if tab.waitForExistence(timeout: 5) {
-            tab.tap()
-            // Let the tab settle before capturing, or the shot catches a transition.
-            _ = app.wait(for: .runningForeground, timeout: 1)
-        } else {
+        guard tab.waitForExistence(timeout: 10) else {
             XCTFail("no \(label) tab — the tab bar labels may have changed")
+            return
         }
+        tab.tap()
+
+        // Wait for the tab to actually be selected rather than guessing at a duration.
+        let selected = NSPredicate(format: "isSelected == true")
+        expectation(for: selected, evaluatedWith: tab)
+        waitForExpectations(timeout: 10)
+    }
+
+    /// Blocks until the app stops changing. XCTest's idle tracking covers animations;
+    /// the extra pause covers the render server catching up on a slow host.
+    private func settle() {
+        _ = app.wait(for: .runningForeground, timeout: 5)
+        Thread.sleep(forTimeInterval: 1.5)
     }
 
     func testCaptureAppStoreScreenshots() throws {
