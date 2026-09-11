@@ -138,15 +138,16 @@ workflows:
           fi
 
           keychain initialize
+          # Fetching for the app also creates and saves a profile for the widget, since
+          # extensions are part of the same bundle id family.
           app-store-connect fetch-signing-files "$BUNDLE_ID" \
             --type IOS_APP_STORE --create --certificate-key "@file:$KEY"
-          # The widget ships inside the app and needs its own App Store profile.
-          app-store-connect fetch-signing-files "${BUNDLE_ID}.widgets" \
-            --type IOS_APP_STORE --create --certificate-key "@file:$KEY"
           keychain add-certificates
-          # Writes the fetched profiles into the project, so the archive below signs
-          # manually and does not reach out to Apple again.
-          xcode-project use-profiles
+          # --warn-only because this walks every target in the project, and FixMeTests
+          # and FixMeUITests have no App Store profiles and never will. Without it one
+          # unmatched test bundle fails the whole step, which is what "Failed to set code
+          # signing settings" meant — the app and widget profiles were fetched fine.
+          xcode-project use-profiles --warn-only
 
       - name: Archive
         script: |
