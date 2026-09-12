@@ -138,10 +138,18 @@ workflows:
           fi
 
           keychain initialize
-          # Fetching for the app also creates and saves a profile for the widget, since
-          # extensions are part of the same bundle id family.
-          app-store-connect fetch-signing-files "$BUNDLE_ID" \
-            --type IOS_APP_STORE --create --certificate-key "@file:$KEY"
+
+          # Both certificate types, from the same key. xcodebuild archive signs with a
+          # DEVELOPMENT certificate and only re-signs for distribution at export — the
+          # local Xcode logs showed exactly that. With only a distribution certificate
+          # here, Xcode went looking for a development one, found the orphans its own
+          # automatic signing had left on the account from destroyed runners, and stopped
+          # with "already has a signing certificate... private key is not installed".
+          # Fetching for the app also creates profiles for the widget.
+          for TYPE in IOS_APP_DEVELOPMENT IOS_APP_STORE; do
+            app-store-connect fetch-signing-files "$BUNDLE_ID" \
+              --type "$TYPE" --create --certificate-key "@file:$KEY"
+          done
           keychain add-certificates
           # --warn-only because this walks every target, and FixMeTests and FixMeUITests
           # have no App Store profiles and never will.
