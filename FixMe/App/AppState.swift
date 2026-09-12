@@ -17,6 +17,12 @@ final class AppState {
     /// Debug-only: presents the how-to guide straight away.
     var showGuideOnLaunch = false
 
+    /// Debug-only: presents the paywall straight away. App Store Connect wants a review
+    /// screenshot of each in-app purchase *as it appears in the app*, and this is the
+    /// only way to reach the paywall from a launch argument rather than three taps a
+    /// screenshot tool can't make.
+    var showPaywallOnLaunch = false
+
     /// Set true while the user is mid-onboarding to preview journey math live.
     var draftCommitmentLevel: CommitmentLevel = .committed
 
@@ -37,6 +43,7 @@ final class AppState {
             self.initialSocialSection = args[index + 1]
         }
         self.showGuideOnLaunch = args.contains("-FixMeShowGuide")
+        self.showPaywallOnLaunch = args.contains("-FixMeShowPaywall")
         #endif
     }
 }

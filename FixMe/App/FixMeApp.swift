@@ -59,6 +59,12 @@ struct RootView: View {
         )) {
             HowToUseView()
         }
+        .sheet(isPresented: Binding(
+            get: { appState.showPaywallOnLaunch },
+            set: { appState.showPaywallOnLaunch = $0 }
+        )) {
+            PaywallView(trigger: .settings)
+        }
         .sheet(item: $pendingPact) { pending in
             PactInviteSheet(payload: pending.payload)
         }
